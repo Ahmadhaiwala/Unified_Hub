@@ -8,12 +8,17 @@ const menu = [
     {
         label: "Dashboard",
         icon: "🏠",
-        path: "/",
+        path: "/dashboard",
     },
     {
         label: "Profile",
         icon: "👤",
         path: "/profile",
+    },
+    {
+        label: "Chat",
+        icon: "👤",
+        path: "/Chat",
     },
     {
         label: "Users",
@@ -140,7 +145,7 @@ export default function Sidebar({ onNavigate }) {
                                     )}
                                 </>
                             ) : (
-                                /* Parent without children */
+                               
                                 <button
                                     onClick={() => handleNavigation(item.path)}
                                     className="w-full text-left flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-200 dark:hover:bg-neutral-700"
@@ -159,6 +164,7 @@ export default function Sidebar({ onNavigate }) {
                         onClick={() => handleNavigation("/profile")}
                         className="w-full text-left flex items-center gap-2 hover:opacity-80 transition-opacity"
                     >
+                       
                         <img
                             className="w-8 h-8 rounded-full"
                             src={profile?.avatar || "https://i.pravatar.cc/100"}

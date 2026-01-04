@@ -1,13 +1,36 @@
+import { Routes, Route } from "react-router-dom"
 import { useAuth } from "./context/AuthContext"
 import Auth from "./pages/Auth"
+import AppLayout from "./components/layout/Applayout"
 import Home from "./pages/home"
+import Profile from "./components/profile/Profile"
 import Loading from "./components/Loading"
 import { ThemeProvider } from "./context/ThemeContext"
+import ProtectedRoute from "./context/ProtectedRoute"
+import Chat from "./components/Chat"
 
 export default function App() {
-  const { user, loading } = useAuth()
+  const { loading } = useAuth()
 
-  if (loading) return <ThemeProvider>  <Loading /></ThemeProvider>
+  if (loading) return <ThemeProvider><Loading /></ThemeProvider>
 
-  return user ? <ThemeProvider><Home /></ThemeProvider> : <ThemeProvider><Auth /></ThemeProvider>
+  return (
+    <ThemeProvider>
+      <Routes>
+        <Route path="/login" element={<Auth />} />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <AppLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Home />} />
+          <Route path="chat" element={<Chat />} />
+          <Route path="profile" element={<Profile />} />
+        </Route>
+      </Routes>
+    </ThemeProvider>
+  )
 }
