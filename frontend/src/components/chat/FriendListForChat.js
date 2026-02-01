@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "../../context/AuthContext"
+import { useTheme } from "../../context/ThemeContext"
 
 export default function FriendListForChat({ onSelectFriend }) {
     const { user } = useAuth()
+    const { themeStyles } = useTheme()
     const [friends, setFriends] = useState([])
     const [loading, setLoading] = useState(true)
 
@@ -61,20 +63,20 @@ export default function FriendListForChat({ onSelectFriend }) {
     if (loading) {
         return (
             <div className="flex items-center justify-center h-full">
-                <p className="text-gray-500">Loading friends...</p>
+                <p className={themeStyles.accent}>Loading friends...</p>
             </div>
         )
     }
 
     return (
         <div className="h-full overflow-y-auto">
-            <div className="bg-gray-100 p-4 border-b">
-                <h2 className="text-xl font-bold">Select a Friend to Chat</h2>
+            <div className={`${themeStyles.secondbar} p-4 ${themeStyles.border} border-b`}>
+                <h2 className={`text-xl font-bold ${themeStyles.text}`}>Select a Friend to Chat</h2>
             </div>
 
-            <div className="divide-y">
+            <div className={`divide-y ${themeStyles.border}`}>
                 {friends.length === 0 ? (
-                    <div className="p-8 text-center text-gray-500">
+                    <div className={`p-8 text-center ${themeStyles.accent}`}>
                         <p className="mb-2">No friends yet!</p>
                         <p className="text-sm">Add friends first to start chatting.</p>
                     </div>
@@ -83,15 +85,15 @@ export default function FriendListForChat({ onSelectFriend }) {
                         <div
                             key={friend.friend_id}
                             onClick={() => startConversation(friend.friend_id, friend.name)}
-                            className="p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                            className={`p-4 hover:${themeStyles.secondbar} cursor-pointer transition-colors ${themeStyles.text}`}
                         >
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold">
+                                <div className={`w-10 h-10 ${themeStyles.accent.replace('text-', 'bg-')} text-white rounded-full flex items-center justify-center font-bold`}>
                                     {friend.name.charAt(0).toUpperCase()}
                                 </div>
                                 <div>
                                     <h3 className="font-semibold">{friend.name}</h3>
-                                    <p className="text-sm text-gray-500">Click to start chatting</p>
+                                    <p className={`text-sm ${themeStyles.accent}`}>Click to start chatting</p>
                                 </div>
                             </div>
                         </div>

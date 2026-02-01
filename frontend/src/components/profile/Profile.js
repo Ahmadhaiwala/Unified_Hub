@@ -1,6 +1,6 @@
 import { useAuth } from "../../context/AuthContext"
 import { useTheme } from "../../context/ThemeContext"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 
 export default function Profile() {
   const { user } = useAuth()
@@ -12,10 +12,14 @@ export default function Profile() {
   const [updating, setUpdating] = useState(false)
   const [updateError, setUpdateError] = useState(null)
   const [updateSuccess, setUpdateSuccess] = useState(false)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [photoPreview, setPhotoPreview] = useState(null)
+  const fileInputRef = useRef(null)
   const [formData, setFormData] = useState({
     username: "",
     email: "",
     bio: "",
+    avatar_url: "",
   })
 
   useEffect(() => {
@@ -45,7 +49,9 @@ export default function Profile() {
           username: data?.username || "",
           email: user?.email || "",
           bio: data?.bio || "",
+          avatar_url: data?.avatar_url || "",
         })
+        setPhotoPreview(data?.avatar_url || null)
       } catch (err) {
         setError(err.message)
         console.error("Profile fetch error:", err)
@@ -77,9 +83,59 @@ export default function Profile() {
       username: profile?.username || "",
       email: user?.email || "",
       bio: profile?.bio || "",
+      avatar_url: profile?.avatar_url || "",
     })
+    setPhotoPreview(profile?.avatar_url || null)
     setUpdateError(null)
     setUpdateSuccess(false)
+  }
+
+  const handlePhotoClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click()
+    }
+  }
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setUpdateError('Please select an image file')
+      return
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setUpdateError('Image size should be less than 5MB')
+      return
+    }
+
+    setUploadingPhoto(true)
+    setUpdateError(null)
+
+    try {
+      // Convert to base64
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const base64String = reader.result
+        setPhotoPreview(base64String)
+        setFormData(prev => ({
+          ...prev,
+          avatar_url: base64String
+        }))
+        setUploadingPhoto(false)
+      }
+      reader.onerror = () => {
+        setUpdateError('Failed to read image file')
+        setUploadingPhoto(false)
+      }
+      reader.readAsDataURL(file)
+    } catch (err) {
+      setUpdateError('Failed to process image')
+      setUploadingPhoto(false)
+    }
   }
 
   const handleUpdateProfile = async () => {
@@ -102,6 +158,7 @@ export default function Profile() {
           username: formData.username,
           email: formData.email,
           bio: formData.bio,
+          avatar_url: formData.avatar_url,
         }),
       })
 
@@ -153,11 +210,32 @@ export default function Profile() {
         <div className={`${themeStyles.cardBg} ${themeStyles.border} rounded-lg p-8 mb-6 shadow-lg`}>
           <div className="flex items-center justify-between gap-6">
             <div className="flex items-center gap-6">
-              <img
-                src={profile?.avatar || "https://i.pravatar.cc/150"}
-                alt="avatar"
-                className="w-24 h-24 rounded-full border-4"
-              />
+              {/* Avatar with Upload */}
+              <div className="relative group">
+                <img
+                  src={photoPreview || profile?.avatar_url || `https://ui-avatars.com/api/?name=${profile?.username || 'User'}&size=200&background=random`}
+                  alt="avatar"
+                  className="w-32 h-32 rounded-full border-4 border-gray-200 dark:border-gray-700 object-cover shadow-lg"
+                />
+                <button
+                  onClick={handlePhotoClick}
+                  disabled={uploadingPhoto}
+                  className="absolute inset-0 w-32 h-32 rounded-full bg-black bg-opacity-0 hover:bg-opacity-50 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer"
+                >
+                  {uploadingPhoto ? (
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                  ) : (
+                    <span className="text-white text-3xl">📷</span>
+                  )}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoChange}
+                  className="hidden"
+                />
+              </div>
               <div>
                 <h1 className="text-3xl font-bold mb-2">
                   {profile?.username || "User"} {profile?.last_name || ""}

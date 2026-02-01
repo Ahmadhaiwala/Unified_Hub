@@ -155,8 +155,8 @@ export default function ViewFriend() {
                 disabled={removingId === friend.friend_id}
                 onClick={() => handleUnfriend(friend.friend_id)}
                 className={`px-3 py-1 text-sm rounded text-white ${removingId === friend.friend_id
-                    ? "bg-gray-400"
-                    : "bg-red-500 hover:bg-red-600"
+                  ? "bg-gray-400"
+                  : "bg-red-500 hover:bg-red-600"
                   }`}
               >
                 {removingId === friend.friend_id ? "Removing..." : "Unfriend"}

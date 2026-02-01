@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "../../context/AuthContext"
+import { useTheme } from "../../context/ThemeContext"
 
 export default function ConversationList({ onSelectConversation, selectedConversationId, refreshTrigger }) {
     const { user } = useAuth()
+    const { themeStyles } = useTheme()
     const [conversations, setConversations] = useState([])
 
     useEffect(() => {
@@ -41,15 +43,15 @@ export default function ConversationList({ onSelectConversation, selectedConvers
     }
 
     return (
-        <div className="border-r h-full overflow-y-auto">
-            <div className="bg-gray-100 p-4 border-b">
-                <h2 className="text-xl font-bold">Messages</h2>
-                <p className="text-xs text-gray-500">({conversations.length} conversations)</p>
+        <div className={`${themeStyles.border} border-r h-full overflow-y-auto`}>
+            <div className={`${themeStyles.secondbar} p-4 ${themeStyles.border} border-b`}>
+                <h2 className={`text-xl font-bold ${themeStyles.text}`}>Messages</h2>
+                <p className={`text-xs ${themeStyles.accent}`}>({conversations.length} conversations)</p>
             </div>
 
-            <div className="divide-y">
+            <div className={`divide-y ${themeStyles.border}`}>
                 {conversations.length === 0 ? (
-                    <div className="p-4 text-gray-500 text-center">
+                    <div className={`p-4 ${themeStyles.accent} text-center`}>
                         <p>No conversations yet.</p>
                         <p className="text-sm mt-2">Start chatting with a friend!</p>
                     </div>
@@ -58,7 +60,9 @@ export default function ConversationList({ onSelectConversation, selectedConvers
                         <div
                             key={conv.id}
                             onClick={() => onSelectConversation(conv.id, conv.participant.username)}
-                            className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${selectedConversationId === conv.id ? "bg-blue-50 border-l-4 border-blue-500" : ""
+                            className={`p-4 cursor-pointer transition-colors ${themeStyles.text} ${selectedConversationId === conv.id
+                                    ? `${themeStyles.secondbar} border-l-4 ${themeStyles.accent.replace('text-', 'border-')}`
+                                    : `hover:${themeStyles.secondbar}`
                                 }`}
                         >
                             <div className="flex justify-between items-start">
@@ -66,19 +70,19 @@ export default function ConversationList({ onSelectConversation, selectedConvers
                                     <div className="flex items-center gap-2">
                                         <h3 className="font-semibold">{conv.participant.username}</h3>
                                         {conv.unread_count > 0 && (
-                                            <span className="bg-blue-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                                            <span className={`${themeStyles.accent.replace('text-', 'bg-')} text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center`}>
                                                 {conv.unread_count}
                                             </span>
                                         )}
                                     </div>
                                     {conv.last_message && (
-                                        <p className="text-sm text-gray-600 truncate mt-1">
+                                        <p className={`text-sm ${themeStyles.accent} truncate mt-1`}>
                                             {conv.last_message.content}
                                         </p>
                                     )}
                                 </div>
                                 {conv.last_message && (
-                                    <span className="text-xs text-gray-400 ml-2">
+                                    <span className={`text-xs ${themeStyles.accent} ml-2`}>
                                         {new Date(conv.last_message.created_at).toLocaleDateString()}
                                     </span>
                                 )}

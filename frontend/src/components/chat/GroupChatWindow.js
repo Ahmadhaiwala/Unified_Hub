@@ -2,28 +2,36 @@ import { useState, useEffect, useRef } from "react"
 import { useAuth } from "../../context/AuthContext"
 import { useTheme } from "../../context/ThemeContext"
 
-export default function ChatWindow({ conversationId, friendName, onMessageSent }) {
+export default function GroupChatWindow({ groupId, groupName, onMessageSent }) {
     const { user } = useAuth()
     const { themeStyles } = useTheme()
     const [messages, setMessages] = useState([])
     const [newMessage, setNewMessage] = useState("")
     const [loading, setLoading] = useState(false)
     const [connected, setConnected] = useState(false)
+    const [members, setMembers] = useState([])
     const messagesEndRef = useRef(null)
     const wsRef = useRef(null)
 
     useEffect(() => {
-        if (conversationId && user?.access_token) {
+        if (groupId && user?.access_token) {
             fetchMessages()
+            fetchMembers()
             connectWebSocket()
         }
 
         return () => {
-            if (wsRef.current) {
-                wsRef.current.close()
+            if (wsRef.current && groupId) {
+                // Leave group before disconnecting
+                wsRef.current.send(
+                    JSON.stringify({
+                        action: "leave_group",
+                        group_id: groupId,
+                    })
+                )
             }
         }
-    }, [conversationId, user])
+    }, [groupId, user])
 
     useEffect(() => {
         scrollToBottom()
@@ -34,67 +42,84 @@ export default function ChatWindow({ conversationId, friendName, onMessageSent }
     }
 
     function connectWebSocket() {
-        if (wsRef.current) {
-            wsRef.current.close()
-        }
+        if (!user?.access_token) return
 
-        const ws = new WebSocket(
-            `ws://localhost:8000/api/ws/chat/${user.access_token}`
-        )
+        // Reuse existing WebSocket or create new one
+        if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+            const ws = new WebSocket(
+                `ws://localhost:8000/api/ws/chat/${user.access_token}`
+            )
 
-        ws.onopen = () => {
-            console.log("WebSocket connected")
-            setConnected(true)
-        }
+            ws.onopen = () => {
+                console.log("WebSocket connected")
+                setConnected(true)
 
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data)
-
-            if (data.type === "new_message") {
-                const msg = data.message
-                // Only add message if it's for the current conversation
-                if (msg.conversation_id === conversationId) {
-                    setMessages((prev) => {
-                        // Check if message already exists
-                        if (prev.some((m) => m.id === msg.id)) {
-                            return prev
-                        }
-                        return [...prev, msg]
+                // Join the group
+                ws.send(
+                    JSON.stringify({
+                        action: "join_group",
+                        group_id: groupId,
                     })
+                )
+            }
 
-                    // Mark as read if not sent by current user
-                    if (msg.sender_id !== user.user.id) {
-                        markAsRead()
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data)
+
+                if (data.type === "new_group_message") {
+                    const msg = data.message
+                    // Only add message if it's for the current group
+                    if (msg.group_id === groupId) {
+                        setMessages((prev) => {
+                            // Check if message already exists
+                            if (prev.some((m) => m.id === msg.id)) {
+                                return prev
+                            }
+                            return [...prev, msg]
+                        })
                     }
+                } else if (data.type === "group_joined") {
+                    console.log("Successfully joined group:", data.group_id)
+                } else if (data.type === "user_typing") {
+                    // Handle typing indicator
+                    console.log("User typing:", data.user_id)
                 }
             }
-        }
 
-        ws.onerror = (error) => {
-            console.error("WebSocket error:", error)
-            setConnected(false)
-        }
+            ws.onerror = (error) => {
+                console.error("WebSocket error:", error)
+                setConnected(false)
+            }
 
-        ws.onclose = () => {
-            console.log("WebSocket disconnected")
-            setConnected(false)
-            // Attempt to reconnect after 3 seconds
-            setTimeout(() => {
-                if (conversationId && user?.access_token) {
-                    connectWebSocket()
-                }
-            }, 3000)
-        }
+            ws.onclose = () => {
+                console.log("WebSocket disconnected")
+                setConnected(false)
+                // Attempt to reconnect after 3 seconds
+                setTimeout(() => {
+                    if (groupId && user?.access_token) {
+                        connectWebSocket()
+                    }
+                }, 3000)
+            }
 
-        wsRef.current = ws
+            wsRef.current = ws
+        } else {
+            // WebSocket already open, just join the group
+            wsRef.current.send(
+                JSON.stringify({
+                    action: "join_group",
+                    group_id: groupId,
+                })
+            )
+        }
     }
 
     async function fetchMessages() {
-        if (!conversationId || !user?.access_token) return
+        if (!groupId || !user?.access_token) return
 
         try {
             const response = await fetch(
-                `http://localhost:8000/api/chat/conversations/${conversationId}/messages`,
+                `http://localhost:8000/api/chatgroups/${groupId}/messages`,
                 {
                     headers: { Authorization: `Bearer ${user.access_token}` },
                 }
@@ -102,47 +127,50 @@ export default function ChatWindow({ conversationId, friendName, onMessageSent }
 
             if (response.ok) {
                 const data = await response.json()
-                setMessages(data)
-                markAsRead()
+                setMessages(data.messages || [])
             }
         } catch (error) {
             console.error("Failed to fetch messages:", error)
         }
     }
 
-    async function markAsRead() {
-        if (!conversationId || !user?.access_token) return
+    async function fetchMembers() {
+        if (!groupId || !user?.access_token) return
 
         try {
-            await fetch(
-                `http://localhost:8000/api/chat/conversations/${conversationId}/read`,
+            const response = await fetch(
+                `http://localhost:8000/api/chatgroups/${groupId}/members`,
                 {
-                    method: "PUT",
                     headers: { Authorization: `Bearer ${user.access_token}` },
                 }
             )
+
+            if (response.ok) {
+                const data = await response.json()
+                setMembers(data.members || [])
+            }
         } catch (error) {
-            console.error("Failed to mark as read:", error)
+            console.error("Failed to fetch members:", error)
         }
     }
 
     function sendMessage(e) {
         e.preventDefault()
-        if (!newMessage.trim() || !conversationId || loading || !connected) return
+        if (!newMessage.trim() || !groupId || loading || !connected) return
 
         setLoading(true)
         try {
             // Send via WebSocket
             wsRef.current.send(
                 JSON.stringify({
-                    action: "send_message",
-                    conversation_id: conversationId,
+                    action: "send_group_message",
+                    group_id: groupId,
                     content: newMessage,
                 })
             )
             setNewMessage("")
 
-            // Notify parent that message was sent to refresh conversation list
+            // Notify parent that message was sent
             if (onMessageSent) {
                 onMessageSent()
             }
@@ -153,10 +181,10 @@ export default function ChatWindow({ conversationId, friendName, onMessageSent }
         }
     }
 
-    if (!conversationId) {
+    if (!groupId) {
         return (
             <div className={`flex items-center justify-center h-full ${themeStyles.accent}`}>
-                Select a conversation to start chatting
+                Select a group to start chatting
             </div>
         )
     }
@@ -165,7 +193,12 @@ export default function ChatWindow({ conversationId, friendName, onMessageSent }
         <div className="flex flex-col h-full">
             {/* Header */}
             <div className={`${themeStyles.secondbar} p-4 ${themeStyles.border} border-b flex justify-between items-center`}>
-                <h2 className={`text-xl font-bold ${themeStyles.text}`}>{friendName}</h2>
+                <div>
+                    <h2 className={`text-xl font-bold ${themeStyles.text}`}>{groupName}</h2>
+                    <p className={`text-sm ${themeStyles.accent}`}>
+                        {members.length} member{members.length !== 1 ? "s" : ""}
+                    </p>
+                </div>
                 <div className="flex items-center gap-2">
                     <div
                         className={`w-3 h-3 rounded-full ${connected ? "bg-green-500" : "bg-red-500"
@@ -189,10 +222,15 @@ export default function ChatWindow({ conversationId, friendName, onMessageSent }
                         >
                             <div
                                 className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg shadow-md ${isOwnMessage
-                                        ? "bg-blue-500 text-white"
-                                        : `${themeStyles.secondbar} ${themeStyles.text} border ${themeStyles.border}`
+                                    ? "bg-blue-500 text-white"
+                                    : `${themeStyles.secondbar} ${themeStyles.text} border ${themeStyles.border}`
                                     }`}
                             >
+                                {!isOwnMessage && (
+                                    <p className="text-xs font-semibold mb-1 opacity-70">
+                                        User {msg.sender_id.slice(0, 8)}
+                                    </p>
+                                )}
                                 <p>{msg.content}</p>
                                 <p className={`text-xs mt-1 ${isOwnMessage ? "text-blue-100" : "opacity-60"}`}>
                                     {new Date(msg.created_at).toLocaleTimeString([], {

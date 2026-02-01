@@ -10,6 +10,8 @@ import ProtectedRoute from "./context/ProtectedRoute"
 import Chat from "./pages/Chat"
 import ViewFriend from "./components/friends/ViewFriend"
 import Userls from "./components/users/Userls"
+import UserProfile from "./components/users/UserProfile"
+
 export default function App() {
   const { loading } = useAuth()
 
@@ -30,6 +32,7 @@ export default function App() {
 
           <Route index element={<Home />} />
           <Route path="users" element={<Userls />} />
+          <Route path="users/:userId" element={<UserProfile />} />
           <Route path="chat" element={<Chat />} />
           <Route path="profile" element={<Profile />} />
           <Route path="friends" element={<ViewFriend />} />

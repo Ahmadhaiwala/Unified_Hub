@@ -1,17 +1,21 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from app.core.security import get_current_user
+from app.core.supabase import supabase
 from app.schemas.chat import MessageCreate, Message, ConversationListOut, ConversationDetail
 from app.services.chatservices import ChatService
-from typing import List, Dict
+from app.services.chatgroupservices import ChatGroupService
+from typing import List, Dict, Set
 import json
 
 router = APIRouter()
 
-# Store active WebSocket connections
+# Store active WebSocket connections don't edit 
 class ConnectionManager:
     def __init__(self):
         # Map of user_id -> WebSocket connection
         self.active_connections: Dict[str, WebSocket] = {}
+        # Map of group_id -> set of user_ids subscribed to that group
+        self.group_subscriptions: Dict[str, Set[str]] = {}
 
     async def connect(self, user_id: str, websocket: WebSocket):
         await websocket.accept()
@@ -21,6 +25,12 @@ class ConnectionManager:
     def disconnect(self, user_id: str):
         if user_id in self.active_connections:
             del self.active_connections[user_id]
+            # Remove from all group subscriptions
+            for group_id in list(self.group_subscriptions.keys()):
+                if user_id in self.group_subscriptions[group_id]:
+                    self.group_subscriptions[group_id].remove(user_id)
+                    if not self.group_subscriptions[group_id]:
+                        del self.group_subscriptions[group_id]
             print(f"User {user_id} disconnected. Total connections: {len(self.active_connections)}")
 
     async def send_personal_message(self, message: dict, user_id: str):
@@ -29,13 +39,37 @@ class ConnectionManager:
                 await self.active_connections[user_id].send_json(message)
             except Exception as e:
                 print(f"Error sending message to {user_id}: {e}")
+    
+    # Group chat methods
+    def subscribe_to_group(self, user_id: str, group_id: str):
+        """Subscribe a user to a group for real-time updates"""
+        if group_id not in self.group_subscriptions:
+            self.group_subscriptions[group_id] = set()
+        self.group_subscriptions[group_id].add(user_id)
+        print(f"User {user_id} subscribed to group {group_id}. Total subscribers: {len(self.group_subscriptions[group_id])}")
+    
+    def unsubscribe_from_group(self, user_id: str, group_id: str):
+        """Unsubscribe a user from a group"""
+        if group_id in self.group_subscriptions:
+            self.group_subscriptions[group_id].discard(user_id)
+            if not self.group_subscriptions[group_id]:
+                del self.group_subscriptions[group_id]
+            print(f"User {user_id} unsubscribed from group {group_id}")
+    
+    async def send_group_message(self, message: dict, group_id: str):
+        """Send message to all users subscribed to a group"""
+        if group_id in self.group_subscriptions:
+            subscribers = self.group_subscriptions[group_id].copy()
+            print(f"Broadcasting to {len(subscribers)} subscribers in group {group_id}")
+            for user_id in subscribers:
+                await self.send_personal_message(message, user_id)
 
 manager = ConnectionManager()
 
 @router.websocket("/ws/chat/{token}")
 async def websocket_endpoint(websocket: WebSocket, token: str):
     """WebSocket endpoint for real-time chat"""
-    from app.core.supabase import supabase
+    
     
     # Verify token and get user
     try:
@@ -86,15 +120,66 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
                     }
                 }
                 
-                # Send to sender
+                
                 await manager.send_personal_message(message_data, user_id)
                 
-                # Send to receiver
+                
                 await manager.send_personal_message(message_data, str(other_user_id))
             
             elif action == "mark_read":
                 conversation_id = data.get("conversation_id")
                 await ChatService.mark_messages_as_read(conversation_id, user_id)
+            
+            # Group chat actions
+            elif action == "join_group":
+                # Subscribe to group messages
+                group_id = data.get("group_id")
+                manager.subscribe_to_group(user_id, group_id)
+                await manager.send_personal_message({
+                    "type": "group_joined",
+                    "group_id": group_id
+                }, user_id)
+            
+            elif action == "leave_group":
+                # Unsubscribe from group messages
+                group_id = data.get("group_id")
+                manager.unsubscribe_from_group(user_id, group_id)
+                await manager.send_personal_message({
+                    "type": "group_left",
+                    "group_id": group_id
+                }, user_id)
+            
+            elif action == "send_group_message":
+                group_id = data.get("group_id")
+                content = data.get("content")
+                
+                # Save message to database
+                message = await ChatGroupService.send_group_message(group_id, user_id, content)
+                
+                # Broadcast to all group members
+                message_data = {
+                    "type": "new_group_message",
+                    "message": {
+                        "id": str(message.id),
+                        "group_id": str(message.group_id),
+                        "sender_id": str(message.sender_id),
+                        "content": message.content,
+                        "created_at": message.created_at.isoformat()
+                    }
+                }
+                
+                # Send to all subscribed members
+                await manager.send_group_message(message_data, group_id)
+            
+            elif action == "typing_in_group":
+                # Broadcast typing indicator to group
+                group_id = data.get("group_id")
+                typing_data = {
+                    "type": "user_typing",
+                    "group_id": group_id,
+                    "user_id": user_id
+                }
+                await manager.send_group_message(typing_data, group_id)
                 
     except WebSocketDisconnect:
         manager.disconnect(user_id)
@@ -104,7 +189,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
 
 @router.get("/chat/conversations", response_model=ConversationListOut)
 async def get_conversations(current_user=Depends(get_current_user)):
-    """Get all conversations for the current user"""
+    
     return await ChatService.get_user_conversations(current_user.id)
 
 @router.post("/chat/conversations/{friend_id}", response_model=ConversationDetail)
