@@ -73,7 +73,23 @@ WHERE gm.group_id = cg.id
   AND gm.role = 'member';
 
 -- ============================================================================
--- 4. ROW LEVEL SECURITY (RLS) POLICIES
+-- 4. ADD AVATAR SUPPORT TO CHAT_GROUPS
+-- ============================================================================
+
+-- Add avatar_url column to chat_groups if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'chat_groups' AND column_name = 'avatar_url'
+    ) THEN
+        ALTER TABLE chat_groups 
+        ADD COLUMN avatar_url TEXT;
+    END IF;
+END $$;
+
+-- ============================================================================
+-- 5. ROW LEVEL SECURITY (RLS) POLICIES
 -- ============================================================================
 
 -- Enable RLS on group_attachments

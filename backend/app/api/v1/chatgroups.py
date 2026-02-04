@@ -11,7 +11,7 @@ from typing import List
 
 router = APIRouter()
 
-# ===== GROUP MANAGEMENT =====
+
 
 @router.post("/chatgroups", response_model=ChatGroupOut)
 async def create_group(
@@ -130,6 +130,27 @@ async def leave_group(
     await ChatGroupService.leave_group(group_id, current_user.id)
     return {"message": "Left group successfully"}
 
+@router.patch("/chatgroups/{group_id}/members/{user_id}/role")
+async def update_member_role(
+    group_id: str,
+    user_id: str,
+    role_data: dict,
+    current_user=Depends(get_current_user)
+):
+    """
+    Update a member's role (admin only)
+    """
+    new_role = role_data.get("role")
+    if new_role not in ["admin", "member"]:
+        raise HTTPException(status_code=400, detail="Invalid role. Must be 'admin' or 'member'")
+    
+    return await ChatGroupService.update_member_role(
+        group_id, 
+        current_user.id, 
+        user_id,
+        new_role
+    )
+
 # ===== MESSAGING =====
 
 @router.get("/chatgroups/{group_id}/messages", response_model=GroupMesegeListOut)
@@ -231,4 +252,15 @@ async def delete_attachment(
     """
     await ChatGroupService.delete_attachment(attachment_id, current_user.id)
     return {"message": "Attachment deleted successfully"}
+
+@router.post("/chatgroups/{group_id}/avatar", response_model=ChatGroupOut)
+async def upload_group_avatar(
+    group_id: str,
+    file: UploadFile = File(...),
+    current_user=Depends(get_current_user)
+):
+    """
+    Upload group avatar (admin only)
+    """
+    return await ChatGroupService.upload_group_avatar(group_id, current_user.id, file)
 

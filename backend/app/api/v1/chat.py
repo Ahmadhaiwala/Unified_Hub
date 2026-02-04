@@ -152,20 +152,58 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
             elif action == "send_group_message":
                 group_id = data.get("group_id")
                 content = data.get("content")
+                attachment_id = data.get("attachment_id")  # Get attachment_id if present
                 
                 try:
                     # Save message to database
                     message = await ChatGroupService.send_group_message(group_id, user_id, content)
                     
+                    # If attachment_id is provided, link it to this message
+                    if attachment_id:
+                        try:
+                            supabase.table("group_attachments").update({
+                                "message_id": str(message["id"])
+                            }).eq("id", attachment_id).execute()
+                            
+                            # Fetch attachment data to include in broadcast
+                            attachment_response = supabase.table("group_attachments").select(
+                                "id, file_name, file_type, file_size, uploader_id, created_at, file_path"
+                            ).eq("id", attachment_id).execute()
+                            
+                            if attachment_response.data and len(attachment_response.data) > 0:
+                                attachment = attachment_response.data[0]
+                                
+                                # Generate file URL
+                                bucket_name = "message"
+                                file_path = attachment.get("file_path")
+                                if file_path:
+                                    public_url = supabase.storage.from_(bucket_name).get_public_url(file_path)
+                                    attachment["file_url"] = public_url
+                                    print("Generated file URL (WebSocket):", public_url)
+                                
+                                # Get uploader username
+                                uploader_response = supabase.table("profiles").select(
+                                    "username"
+                                ).eq("id", attachment["uploader_id"]).execute()
+                                
+                                if uploader_response.data and len(uploader_response.data) > 0:
+                                    attachment["uploader_username"] = uploader_response.data[0].get("username")
+                                
+                                # Add attachment to message
+                                message["attachment"] = attachment
+                        except Exception as e:
+                            print(f"Error linking attachment: {e}")
+                    
                     # Broadcast to all group members
                     message_data = {
                         "type": "new_group_message",
                         "message": {
-                            "id": str(message["id"]),  # Access as dictionary
+                            "id": str(message["id"]),
                             "group_id": str(message["group_id"]),
                             "sender_id": str(message["sender_id"]),
                             "content": message["content"],
-                            "created_at": message["created_at"]
+                            "created_at": message["created_at"],
+                            "attachment": message.get("attachment")  # Include attachment if present
                         }
                     }
                     

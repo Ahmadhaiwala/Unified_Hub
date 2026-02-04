@@ -66,7 +66,8 @@ class ChatGroupService:
             member_data = {
                 "id": member_id,
                 "group_id": group_id,
-                "user_id": creator_id
+                "user_id": creator_id,
+                "role": "admin"
             }
             
             print(f"Attempting to add creator as member: {member_data}")
@@ -320,6 +321,90 @@ class ChatGroupService:
             raise HTTPException(status_code=500, detail=str(e))
     
     @staticmethod
+    async def update_member_role(group_id, admin_user_id, target_user_id, new_role):
+        """Update a member's role in the group (admin only)"""
+        try:
+            # Check if current user is admin
+            admin_check = await run_in_threadpool(
+                lambda: supabase
+                    .table("group_members")
+                    .select("role")
+                    .eq("group_id", group_id)
+                    .eq("user_id", admin_user_id)
+                    .execute()
+            )
+            
+            if not admin_check.data or admin_check.data[0].get("role") != "admin":
+                raise HTTPException(
+                    status_code=403,
+                    detail="Only admins can change member roles"
+                )
+            
+            # Prevent changing own role
+            if admin_user_id == target_user_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail="You cannot change your own role"
+                )
+            
+            # If demoting from admin, check there's at least one other admin
+            if new_role != "admin":
+                # Get current role of target user
+                target_role_check = await run_in_threadpool(
+                    lambda: supabase
+                        .table("group_members")
+                        .select("role")
+                        .eq("group_id", group_id)
+                        .eq("user_id", target_user_id)
+                        .execute()
+                )
+                
+                if target_role_check.data and target_role_check.data[0].get("role") == "admin":
+                    # Count total admins
+                    admin_count = await run_in_threadpool(
+                        lambda: supabase
+                            .table("group_members")
+                            .select("id")
+                            .eq("group_id", group_id)
+                            .eq("role", "admin")
+                            .execute()
+                    )
+                    
+                    if len(admin_count.data) <= 1:
+                        raise HTTPException(
+                            status_code=400,
+                            detail="Cannot demote the last admin. Promote another member first."
+                        )
+            
+            # Update the member's role
+            response = await run_in_threadpool(
+                lambda: supabase
+                    .table("group_members")
+                    .update({"role": new_role})
+                    .eq("group_id", group_id)
+                    .eq("user_id", target_user_id)
+                    .execute()
+            )
+
+            print("Update role response:", response)
+
+            if not response.data:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Failed to update member role"
+                )
+
+            return {
+                "message": f"Member role updated to {new_role} successfully"
+            }
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            print("ERROR:", str(e))
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @staticmethod
     async def get_group_members(group_id, current_user_id):
         """Get all members of a group with user details"""
         try:
@@ -392,9 +477,9 @@ class ChatGroupService:
             
             response = await run_in_threadpool(
                 lambda: supabase
-                    .table("group_messseges")  # Fixed: table name has 3 s's
+                    .table("group_messeges")
                     .insert({
-                        "id": message_id,  # Add the UUID
+                        "id": message_id,
                         "group_id": group_id,
                         "sender_id": user_id,
                         "content": message
@@ -415,7 +500,7 @@ class ChatGroupService:
             if message_id:
                 fetch_response = await run_in_threadpool(
                     lambda: supabase
-                        .table("group_messseges")  # Fixed: table name has 3 s's
+                        .table("group_messeges")
                         .select("id, group_id, sender_id, content, created_at, updated_at")
                         .eq("id", message_id)
                         .execute()
@@ -447,9 +532,10 @@ class ChatGroupService:
                     detail="You are not a member of this group"
                 )
             
+            # Get messages
             response = await run_in_threadpool(
                 lambda: supabase
-                    .table("group_messseges")  # Fixed: actual table name has 3 s's
+                    .table("group_messeges")
                     .select(
                         "id, group_id, sender_id, content, created_at, updated_at"
                     )
@@ -463,6 +549,47 @@ class ChatGroupService:
             print("Database response:", response)
 
             messages = response.data or []
+            
+            # For each message, fetch attachment if it exists
+            for msg in messages:
+                attachment_response = await run_in_threadpool(
+                    lambda m=msg: supabase
+                        .table("group_attachments")
+                        .select("id, file_name, file_type, file_size, uploader_id, created_at, file_path")
+                        .eq("message_id", m["id"])
+                        .execute()
+                )
+                
+                print(f"Checking attachments for message {msg['id']}: {len(attachment_response.data) if attachment_response.data else 0} found")
+                
+                if attachment_response.data and len(attachment_response.data) > 0:
+                    attachment = attachment_response.data[0]
+
+    # 🔥 Generate file URL
+                    bucket_name = "message"
+                    file_path = attachment.get("file_path")
+
+                    if file_path:
+                        public_url = supabase.storage.from_(bucket_name).get_public_url(file_path)
+                        attachment["file_url"] = public_url
+                        print("Generated file URL:", public_url)
+
+
+                    # Get uploader username
+                    uploader_response = await run_in_threadpool(
+                        lambda a=attachment: supabase
+                            .table("profiles")
+                            .select("username")
+                            .eq("id", a["uploader_id"])
+                            .execute()
+                    )
+
+                    if uploader_response.data and len(uploader_response.data) > 0:
+                        attachment["uploader_username"] = uploader_response.data[0].get("username")
+
+                    msg["attachment"] = attachment
+                    print(f"Attachment added to message {msg['id']}: {attachment.get('file_name')}")
+
 
             return {
                 "count": len(messages),
@@ -481,7 +608,7 @@ class ChatGroupService:
         try:
             response = await run_in_threadpool(
                 lambda: supabase
-                .table("group_messseges")  # Fixed: table name has 3 s's
+                .table("group_messeges")
                 .delete()
                 .eq("id", message_id)
                 .eq("sender_id", user_id)
@@ -582,17 +709,12 @@ class ChatGroupService:
             # Upload to Supabase Storage
             upload_response = await run_in_threadpool(
                 lambda: supabase.storage
-                    .from_("group-documents")
+                    .from_("message")
                     .upload(file_path, file_content, {
                         "content-type": file.content_type
                     })
             )
-            
-            if upload_response.error:
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"Failed to upload file: {upload_response.error}"
-                )
+            # Note: Supabase Python client raises exceptions on upload errors
             
             # Save attachment metadata to database
             attachment_id = str(uuid.uuid4())
@@ -624,6 +746,88 @@ class ChatGroupService:
 
         except Exception as e:
             print(f"Upload error: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @staticmethod
+    async def upload_group_avatar(group_id, user_id, file):
+        """Upload group avatar (admin only)"""
+        try:
+            # Check if current user is admin
+            admin_check = await run_in_threadpool(
+                lambda: supabase
+                    .table("group_members")
+                    .select("role")
+                    .eq("group_id", group_id)
+                    .eq("user_id", user_id)
+                    .execute()
+            )
+            
+            if not admin_check.data or admin_check.data[0].get("role") != "admin":
+                raise HTTPException(
+                    status_code=403,
+                    detail="Only admins can update group avatar"
+                )
+            
+            # Validate file type (images only)
+            allowed_types = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
+            if file.content_type not in allowed_types:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Only image files are allowed for avatars"
+                )
+            
+            # Read file content
+            file_content = await file.read()
+            file_size = len(file_content)
+            
+            # Validate file size (2MB limit for avatars)
+            max_size = 2 * 1024 * 1024  # 2MB
+            if file_size > max_size:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Avatar size exceeds maximum of {max_size / (1024*1024)}MB"
+                )
+            
+            # Generate file path: group-avatars/{group_id}/avatar.{ext}
+            import os
+            file_ext = os.path.splitext(file.filename)[1]
+            file_path = f"group-avatars/{group_id}/avatar{file_ext}"
+            
+            # Upload to Supabase Storage
+            upload_response = await run_in_threadpool(
+                lambda: supabase.storage
+                    .from_("group-documents")
+                    .upload(file_path, file_content, {
+                        "content-type": file.content_type,
+                        "upsert": "true"  # Overwrite existing avatar
+                    })
+            )
+            # Note: Supabase Python client raises exceptions on upload errors
+            
+            # Get public URL
+            avatar_url = supabase.storage.from_("group-documents").get_public_url(file_path)
+            
+            # Update group with new avatar_url
+            response = await run_in_threadpool(
+                lambda: supabase
+                    .table("chat_groups")
+                    .update({"avatar_url": avatar_url})
+                    .eq("id", group_id)
+                    .execute()
+            )
+            
+            if not response.data:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Failed to update group avatar"
+                )
+            
+            return response.data[0]
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f"Avatar upload error: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
     
     @staticmethod

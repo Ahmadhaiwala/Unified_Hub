@@ -5,6 +5,7 @@ from app.api.v1.chatgroups import router as chatgroup_router
 from app.api.v1.friends import router as friend_router
 from app.api.v1.users import router as users_router
 from app.api.v1.chat import router as chat_router
+from app.api.v1.chatgroups import router as chatgroup_router
 app = FastAPI(title="Unified Hub Backend 🚀")
 
 
@@ -20,7 +21,6 @@ app.include_router(users_router, prefix="/api", tags=["users"])
 app.include_router(profile_router, prefix="/api", tags=["profile"])
 app.include_router(chatgroup_router, prefix="/api", tags=["chatgroups"])
 app.include_router(chat_router, prefix="/api", tags=["chat"])
-
 @app.get("/")
 def root():
     return {

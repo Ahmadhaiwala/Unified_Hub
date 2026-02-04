@@ -41,6 +41,35 @@ export default function Chat() {
         setShowCreateGroup(false)
     }
 
+    function handleGroupDeleted(groupId) {
+        // Clear selection if the deleted group was selected
+        if (selectedGroup === groupId) {
+            setSelectedGroup(null)
+            setSelectedGroupName("")
+        }
+        // Refresh the groups list
+        setRefreshTrigger(prev => prev + 1)
+    }
+
+    function handleGroupUpdated(groupId, newGroupName) {
+        // Update the group name if it's currently selected
+        if (selectedGroup === groupId) {
+            setSelectedGroupName(newGroupName)
+        }
+        // Refresh the groups list to show the updated name
+        setRefreshTrigger(prev => prev + 1)
+    }
+
+    function handleGroupLeft(groupId) {
+        // Clear selection if the user left the currently selected group
+        if (selectedGroup === groupId) {
+            setSelectedGroup(null)
+            setSelectedGroupName("")
+        }
+        // Refresh the groups list
+        setRefreshTrigger(prev => prev + 1)
+    }
+
     return (
         <div className={`flex flex-col h-[calc(100vh-8rem)] ${themeStyles.cardBg} rounded-lg shadow-lg overflow-hidden ${themeStyles.border} border`}>
             {/* Tab Navigation */}
@@ -48,8 +77,8 @@ export default function Chat() {
                 <button
                     onClick={() => setActiveTab("direct")}
                     className={`flex-1 px-6 py-3 font-medium transition-colors ${activeTab === "direct"
-                            ? `${themeStyles.text} border-b-2 border-blue-500`
-                            : `${themeStyles.accent} hover:${themeStyles.text}`
+                        ? `${themeStyles.text} border-b-2 border-blue-500`
+                        : `${themeStyles.accent} hover:${themeStyles.text}`
                         }`}
                 >
                     Direct Messages
@@ -57,8 +86,8 @@ export default function Chat() {
                 <button
                     onClick={() => setActiveTab("groups")}
                     className={`flex-1 px-6 py-3 font-medium transition-colors ${activeTab === "groups"
-                            ? `${themeStyles.text} border-b-2 border-blue-500`
-                            : `${themeStyles.accent} hover:${themeStyles.text}`
+                        ? `${themeStyles.text} border-b-2 border-blue-500`
+                        : `${themeStyles.accent} hover:${themeStyles.text}`
                         }`}
                 >
                     Groups
@@ -116,6 +145,9 @@ export default function Chat() {
                             groupId={selectedGroup}
                             groupName={selectedGroupName}
                             onMessageSent={() => setRefreshTrigger(prev => prev + 1)}
+                            onGroupDeleted={handleGroupDeleted}
+                            onGroupUpdated={handleGroupUpdated}
+                            onGroupLeft={handleGroupLeft}
                         />
                     )}
                 </div>
