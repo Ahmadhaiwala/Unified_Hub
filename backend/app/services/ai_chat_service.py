@@ -128,7 +128,7 @@ class AIChatService:
                         print(f"🤖 Checking for reminder intent...")
                         intent = await intent_detection_service.detect_reminder_intent(message)
                         
-                        if intent.detected and intent.confidence > 0.7:
+                        if intent.detected and intent.confidence > 0.3:
                             print(f"✅ Reminder intent detected! Confidence: {intent.confidence}")
                             suggested_action = {
                                 "type": "create_reminder",
@@ -248,7 +248,7 @@ class AIChatService:
         """Get recent group attachments (PDFs, documents) for AI context"""
         try:
             response = supabase.table("group_attachments") \
-                .select("file_name, file_type, file_path, uploaded_by, created_at, profiles:uploaded_by(full_name)") \
+                .select("file_name, file_type, file_path, uploader_id, created_at, profiles!uploader_id(full_name)") \
                 .eq("group_id", group_id) \
                 .order("created_at", desc=True) \
                 .limit(limit) \

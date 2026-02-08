@@ -959,7 +959,7 @@ class ChatGroupService:
             # Generate signed URL (expires in 1 hour)
             signed_url = await run_in_threadpool(
                 lambda: supabase.storage
-                    .from_("group-documents")
+                    .from_("message")
                     .create_signed_url(attachment["file_path"], 3600)
             )
             
@@ -1023,7 +1023,7 @@ class ChatGroupService:
             # Delete from storage
             storage_response = await run_in_threadpool(
                 lambda: supabase.storage
-                    .from_("group-documents")
+                    .from_("message")
                     .remove([attachment["file_path"]])
             )
             

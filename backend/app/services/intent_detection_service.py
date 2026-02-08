@@ -28,24 +28,28 @@ class IntentDetectionService:
 Analyze admin messages to detect if they want to create a reminder for students.
 
 Instructions:
-1. Detect reminder intent from natural language
+1. Detect reminder intent from natural language - BE GENEROUS with detection
 2. Extract key information: what, when, how urgent
 3. Parse dates flexibly: "Friday", "tomorrow", "next week", "Feb 15", "5pm", etc.
 4. Determine priority from urgency keywords: "urgent", "asap", "important" → high
-5. Set detected=True only if confidence > 0.7
+5. Set detected=True if confidence > 0.3 (be lenient!)
+6. Look for keywords: remind, reminder, don't forget, due, deadline, submit, complete
 
 Examples:
 - "Remind everyone to submit assignment by Friday 5pm" 
-  → detected: true, title: "Submit assignment", due_date: (calculate Friday 5pm), priority: medium
+  → detected: true, title: "Submit assignment", due_date: (calculate Friday 5pm), priority: medium, confidence: 0.95
   
 - "URGENT: Complete quiz before tomorrow 9am"
-  → detected: true, title: "Complete quiz", due_date: (tomorrow 9am), priority: high
+  → detected: true, title: "Complete quiz", due_date: (tomorrow 9am), priority: high, confidence: 0.9
   
 - "Don't forget about the presentation next Monday"
-  → detected: true, title: "Presentation", due_date: (next Monday), priority: medium
+  → detected: true, title: "Presentation", due_date: (next Monday), priority: medium, confidence: 0.85
+
+- "set a reminder for homework"
+  → detected: true, title: "Homework", due_date: null, priority: medium, confidence: 0.7
 
 - "How's everyone doing with the assignment?"
-  → detected: false
+  → detected: false, confidence: 0.1
 
 You must respond ONLY with valid JSON in this exact format:
 {
