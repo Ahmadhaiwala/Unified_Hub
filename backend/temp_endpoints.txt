@@ -1,0 +1,53 @@
+# Add to chatgroups.py after line 181
+
+# ===== DOCUMENT/ATTACHMENT MANAGEMENT =====
+
+@router.post(\"/chatgroups/{group_id}/attachments\", response_model=GroupAttachmentOut)
+async def upload_attachment(
+    group_id: str,
+    file: UploadFile = File(...),
+    message_id: str = None,
+    current_user=Depends(get_current_user)
+):
+    \"\"\"
+    Upload a file/document to a group chat
+    \"\"\"
+    return await ChatGroupService.upload_document(
+        group_id,
+        current_user.id,
+        file,
+        message_id
+    )
+
+@router.get(\"/chatgroups/{group_id}/attachments\", response_model=GroupAttachmentListOut)
+async def get_group_attachments(
+    group_id: str,
+    current_user=Depends(get_current_user)
+):
+    \"\"\"
+    Get all attachments in a group
+    \"\"\"
+    return await ChatGroupService.get_group_attachments(group_id, current_user.id)
+
+@router.get(\"/chatgroups/{group_id}/attachments/{attachment_id}\")
+async def get_attachment_download_url(
+    group_id: str,
+    attachment_id: str,
+    current_user=Depends(get_current_user)
+):
+    \"\"\"
+    Get a signed URL to download an attachment
+    \"\"\"
+    return await ChatGroupService.get_attachment_download_url(attachment_id, current_user.id)
+
+@router.delete(\"/chatgroups/{group_id}/attachments/{attachment_id}\")
+async def delete_attachment(
+    group_id: str,
+    attachment_id: str,
+    current_user=Depends(get_current_user)
+):
+    \"\"\"
+    Delete an attachment (uploader or admin only)
+    \"\"\"
+    await ChatGroupService.delete_attachment(attachment_id, current_user.id)
+    return {\"message\": \"Attachment deleted successfully\"}

@@ -10,29 +10,31 @@ export default function AppLayout() {
     const { theme, setTheme, themeStyles, themes } = useTheme()
 
     return (
-        <div className={`min-h-screen flex flex-col ${themeStyles.bg} ${themeStyles.text}`}>
-            <Navbar />
+        <div className={`min-h-screen flex ${themeStyles.bg} ${themeStyles.text}`}>
             <Sidebar />
-            <div className="flex flex-row justify-between items-center p-4">
-            </div>
-            <div className="absolute top-4 right-4 flex gap-2 flex-wrap">
-                {Object.keys(themes).map((key) => (
-                    <button
-                        key={key}
-                        onClick={() => setTheme(key)}
-                        className={`px-3 py-1 rounded-md text-xs font-medium transition-all duration-200
-              hover:scale-105
-              ${theme === key ? themeStyles.button : themeStyles.themeButton}`}
-                    >
-                        {themes[key].name}
-                    </button>
-                ))}
-            </div>
-            
 
-            <main className="flex-1 p-4">
-                <Outlet />
-            </main> 
+            <div className="flex-1 flex flex-col lg:ml-0">
+                <Navbar />
+
+                {/* Theme buttons - positioned in navbar area */}
+                <div className="absolute top-4 right-4 flex gap-2 flex-wrap z-10">
+                    {Object.keys(themes).map((key) => (
+                        <button
+                            key={key}
+                            onClick={() => setTheme(key)}
+                            className={`px-3 py-1 rounded-md text-xs font-medium transition-all duration-200
+                  hover:scale-105
+                  ${theme === key ? themeStyles.button : themeStyles.themeButton}`}
+                        >
+                            {themes[key].name}
+                        </button>
+                    ))}
+                </div>
+
+                <main className="flex-1 overflow-auto">
+                    <Outlet />
+                </main>
+            </div>
         </div>
     )
 }

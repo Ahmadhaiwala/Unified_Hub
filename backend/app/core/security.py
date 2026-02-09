@@ -6,7 +6,7 @@ from supabase import create_client, Client
 import os
 from dotenv import load_dotenv
 
-# Load environment variables
+
 load_dotenv()
 
 security = HTTPBearer()
@@ -30,7 +30,7 @@ async def get_current_user(
     token = credentials.credentials
 
     try:
-        # Use Supabase client to verify the token
+        
         user_response = supabase.auth.get_user(token)
         
         if not user_response.user:
@@ -39,7 +39,7 @@ async def get_current_user(
                 detail="Invalid or expired token",
             )
 
-        # Return the user object
+        
         return user_response.user
 
     except Exception as e:

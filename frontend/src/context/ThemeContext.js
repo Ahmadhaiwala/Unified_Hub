@@ -1,95 +1,134 @@
-import { createContext, useContext, useEffect, useState } from "react"
-
-const ThemeContext = createContext(null)
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const themes = {
-    day: {
-        name: "Day",
-        bg: "bg-white",
-        cardBg: "bg-gray-50",
-        text: "text-black",
-        accent: "text-gray-600",
-        border: "border-black",
-        button: "bg-black text-white hover:bg-gray-800",
-        input: "border-black bg-white text-black focus:ring-black",
-        themeButton: "bg-gray-200 hover:bg-gray-300 text-black",
+
+  light: {
+    name: 'Editorial Light',
+    properties: {
+      bg: 'bg-[#e5e5e5] min-h-screen text-black',
+      secondbar: 'bg-[#d9d9d9] border-b-2 border-black',
+      cardBg: 'bg-white border-2 border-black',
+      text: 'text-black',
+      accent: 'text-purple-600',
+      border: 'border-black',
+      sectionAccent: 'border-l-4 border-black pl-4',
+
+      section: 'bg-[#f5f5f5] border-2 border-black p-6',
+      heading: 'text-black font-extrabold tracking-tight',
+
+      cardSoft: 'bg-white border-2 border-black p-5',
+
+      button: `
+        bg-white
+        border-2 border-black
+        px-5 py-2
+        font-bold
+        uppercase
+        tracking-wide
+        hover:bg-black hover:text-white
+        transition
+      `,
+
+      input: `
+        bg-white
+        border-2 border-black
+        px-4 py-2
+        text-black
+        focus:outline-none
+      `,
+
+      themeButton: `
+        bg-purple-400
+        border-2 border-black
+        text-black
+        px-3 py-1
+        font-bold
+      `,
     },
-    night: {
-        name: "Night",
-        bg: "bg-black",
-        cardBg: "bg-gray-900",
-        text: "text-white",
-        accent: "text-blue-400",
-        border: "border-white",
-        button: "bg-white text-black hover:bg-gray-200",
-        input: "border-white bg-black text-white focus:ring-white",
-        themeButton: "bg-gray-800 hover:bg-gray-700 text-white",
+  },
+
+  dark: {
+    name: 'Editorial Dark',
+    properties: {
+      bg: 'bg-black min-h-screen text-white',
+      secondbar: 'bg-neutral-900 border-b-2 border-white',
+      cardBg: 'bg-neutral-900 border-2 border-white',
+      text: 'text-white',
+      accent: 'text-pink-400',
+      border: 'border-white',
+      sectionAccent: 'border-l-4 border-white pl-4',
+
+      section: 'bg-neutral-900 border-2 border-white p-6',
+      heading: 'text-white font-extrabold tracking-tight',
+
+      cardSoft: 'bg-neutral-900 border-2 border-white p-5',
+
+      button: `
+        bg-white
+        text-black
+        border-2 border-white
+        px-5 py-2
+        font-bold
+        uppercase
+        hover:bg-pink-500 hover:text-white
+        transition
+      `,
+
+      input: `
+        bg-neutral-900
+        border-2 border-white
+        px-4 py-2
+        text-white
+        focus:outline-none
+      `,
+
+      themeButton: `
+        bg-pink-500
+        border-2 border-white
+        text-white
+        px-3 py-1
+        font-bold
+      `,
     },
-    coffee: {
-        name: "Coffee",
-        bg: "bg-amber-50",
-        cardBg: "bg-amber-100",
-        text: "text-amber-900",
-        accent: "text-amber-700",
-        border: "border-amber-900",
-        button: "bg-amber-900 text-amber-50 hover:bg-amber-800",
-        input: "border-amber-900 bg-amber-50 text-amber-900 focus:ring-amber-900",
-        themeButton: "bg-amber-200 hover:bg-amber-300 text-amber-900",
-    },
-    sakura: {
-        name: "Sakura",
-        bg: "bg-pink-50",
-        cardBg: "bg-pink-100",
-        text: "text-pink-900",
-        accent: "text-pink-700",
-        border: "border-pink-900",
-        button: "bg-pink-900 text-pink-50 hover:bg-pink-800",
-        input: "border-pink-900 bg-pink-50 text-pink-900 focus:ring-pink-900",
-        themeButton: "bg-pink-200 hover:bg-pink-300 text-pink-900",
-    },
-    cyberpunk: {
-        name: "Cyberpunk",
-        bg: "bg-gray-900",
-        cardBg: "bg-black",
-        text: "text-green-400",
-        accent: "text-cyan-400",
-        border: "border-green-400",
-        button: "bg-green-400 text-black hover:bg-green-300",
-        input: "border-green-400 bg-black text-green-400 focus:ring-green-400",
-        themeButton: "bg-gray-800 hover:bg-gray-700 text-green-400",
-    },
-}
+  },
+};
 
-export function ThemeProvider({ children }) {
-    const [theme, setTheme] = useState(() => {
-        return localStorage.getItem("theme") || "day"
-    })
 
-    useEffect(() => {
-        if (!themes[theme]) return
-        localStorage.setItem("theme", theme)
-    }, [theme])
+const interactions = {
+  buttonBase: 'inline-flex items-center justify-center gap-2 px-6 py-3 font-semibold transition-all duration-300 active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none',
+  glowSweep: 'relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent before:translate-x-[-200%] hover:before:translate-x-[200%] before:transition-transform before:duration-700',
+};
 
-    return (
-        <ThemeContext.Provider
-            value={{
-                theme,
-                setTheme,
-                themeStyles: themes[theme],
-                themes,
-            }}
-        >
-            {children}
-        </ThemeContext.Provider>
-    )
-}
+const ThemeContext = createContext();
 
-export function useTheme() {
-    const context = useContext(ThemeContext)
+export const ThemeProvider = ({ children }) => {
+  const [theme, setTheme] = useState(() => {
+    const stored = localStorage.getItem('social-theme');
+    return stored && themes[stored] ? stored : 'light';
+  });
 
-    if (!context) {
-        throw new Error("useTheme must be used inside ThemeProvider")
-    }
+  useEffect(() => {
+    localStorage.setItem('social-theme', theme);
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
 
-    return context
-}
+  const baseProps = themes[theme]?.properties || themes.light.properties;
+
+  // Merge button interactions automatically
+  const themeStyles = {
+    ...baseProps,
+    button: `${interactions.buttonBase} ${interactions.glowSweep} ${baseProps.button}`,
+  };
+
+  return (
+    <ThemeContext.Provider value={{ theme, setTheme, themeStyles, themes, interactions }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+};
+
+export const useTheme = () => {
+  const context = useContext(ThemeContext);
+  if (!context) throw new Error('useTheme must be used within ThemeProvider');
+  return context;
+};

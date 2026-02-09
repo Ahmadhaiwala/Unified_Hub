@@ -60,7 +60,7 @@ class ProfileService:
             HTTPException: If no data provided, profile not found, or database error
         """
         try:
-            # Remove None values for partial updates
+            
             update_data = profile_data.model_dump(exclude_none=True)
             
             if not update_data:
@@ -92,7 +92,15 @@ class ProfileService:
                 status_code=500,
                 detail=f"Failed to update profile: {str(e)}"
             )
-    
+    @staticmethod
+    async def getAllUser()->list[ProfileResponse]:
+        print('methd of get all users called')
+        response = supabase.table("profiles").select("*").execute()
+        if not response.data:
+            return []
+        print(response.data)
+        return [ProfileResponse(**item) for item in response.data]
+        
     @staticmethod
     async def create_profile(user_id: str, profile_data: ProfileUpdate) -> ProfileResponse:
         """
@@ -109,7 +117,7 @@ class ProfileService:
             HTTPException: If creation fails
         """
         try:
-            # Prepare data for insertion
+           
             insert_data = profile_data.model_dump(exclude_none=True)
             insert_data["id"] = user_id
             

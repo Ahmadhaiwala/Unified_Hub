@@ -7,7 +7,10 @@ import Profile from "./components/profile/Profile"
 import Loading from "./components/Loading"
 import { ThemeProvider } from "./context/ThemeContext"
 import ProtectedRoute from "./context/ProtectedRoute"
-import Chat from "./components/Chat"
+import Chat from "./pages/Chat"
+import ViewFriend from "./components/friends/ViewFriend"
+import Userls from "./components/users/Userls"
+import UserProfile from "./components/users/UserProfile"
 
 export default function App() {
   const { loading } = useAuth()
@@ -26,9 +29,13 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Home />} />
+
+
+          <Route path="users" element={<Userls />} />
+          <Route path="users/:userId" element={<UserProfile />} />
           <Route path="chat" element={<Chat />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="friends" element={<ViewFriend />} />
         </Route>
       </Routes>
     </ThemeProvider>

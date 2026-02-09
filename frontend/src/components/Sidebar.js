@@ -5,33 +5,26 @@ import { useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 
 const menu = [
+    
     {
-        label: "Dashboard",
-        icon: "🏠",
-        path: "/dashboard",
-    },
-    {
-        label: "Profile",
+        label: "Friends",
         icon: "👤",
-        path: "/profile",
+        path: "/friends",
     },
     {
         label: "Chat",
-        icon: "👤",
-        path: "/Chat",
+        icon: "💬",
+        path: "/chat",
     },
     {
-        label: "Users",
-        icon: "👥",
-        children: [
-            { label: "All Users", path: "/users" },
-            { label: "Roles", path: "/roles" },
-        ],
+        label: "Discover Users",
+    icon: "🔍",
+    path: "/users",
     },
 ]
 
 export default function Sidebar({ onNavigate }) {
-    const {logout} = useAuth()
+    const { logout } = useAuth()
     const { themeStyles } = useTheme()
     const [open, setOpen] = useState(false)
     const [active, setActive] = useState(null)
@@ -77,114 +70,71 @@ export default function Sidebar({ onNavigate }) {
 
     return (
         <>
-         
-            <button
-                onClick={() => setOpen(true)}
-                className="lg:hidden fixed top-4 left-4 z-50 px-3 py-2 bg-black text-white rounded"
-            >
-                ☰
-            </button>
 
-           
-            {open && (
-                <div
-                    onClick={() => setOpen(false)}
-                    className="fixed inset-0 bg-black/40 z-40 lg:hidden"
-                />
-            )}
+          <aside
+  className={`
+    w-64 h-screen flex flex-col
+    fixed lg:static top-0 left-0 z-50
+    transform transition-transform duration-300
+    ${open ? "translate-x-0" : "-translate-x-full"}
+    lg:translate-x-0
+    border-r-2
+    ${themeStyles.cardBg} ${themeStyles.text} ${themeStyles.border}
+  `}
+>
+  {/* HEADER */}
+  <div className="p-5 text-xl font-extrabold uppercase tracking-wide border-b-2 border-current">
+    UNIFIED HUB
+  </div>
 
-            
-            <aside
-                className={`
-          fixed top-0 left-0 h-full w-64 z-50
-          transform transition-transform duration-300
-          ${open ? "translate-x-0" : "-translate-x-full"}
-          lg:translate-x-0
-          ${themeStyles.cardBg} ${themeStyles.text} ${themeStyles.border}
+  {/* MENU */}
+  <nav className="flex-1 p-4 space-y-3 overflow-y-auto">
+    {menu.map((item, idx) => (
+      <button
+        key={idx}
+        onClick={() => handleNavigation(item.path)}
+        className={`
+          w-full flex items-center gap-3
+          px-4 py-2
+          border-2 border-current
+          font-bold uppercase text-sm tracking-wide
+          hover:bg-black hover:text-white
+          transition
         `}
-            >
-              
-                <div className="p-4 text-xl font-bold border-b">
-                    Unified hub
-                </div>
+      >
+        <span className="text-lg">{item.icon}</span>
+        {item.label}
+      </button>
+    ))}
+  </nav>
 
-                
-                <nav className="p-2 space-y-1">
-                    {menu.map((item, idx) => (
-                        <div key={idx}>
-                            {/* Parent with children */}
-                            {item.children ? (
-                                <>
-                                    <button
-                                        onClick={() =>
-                                            setActive(active === idx ? null : idx)
-                                        }
-                                        className="w-full flex items-center justify-between px-3 py-2 rounded hover:bg-gray-200 dark:hover:bg-neutral-700"
-                                    >
-                                        <span className="flex items-center gap-2">
-                                            <span>{item.icon}</span>
-                                            {item.label}
-                                        </span>
-                                        {item.children && (
-                                            <span>{active === idx ? "▲" : "▼"}</span>
-                                        )}
-                                    </button>
+  {/* FOOTER PROFILE */}
+  <div className="p-4 border-t-2 border-current">
+    <button
+      onClick={() => handleNavigation("/profile")}
+      className="w-full flex items-center gap-3 border-2 border-current p-2 font-bold hover:bg-black hover:text-white transition"
+    >
+      <img
+        className="w-10 h-10 border-2 border-current"
+        src={profile?.avatar || "https://i.pravatar.cc/100"}
+        alt="avatar"
+      />
+      <div className="text-left">
+        <div>{loadingProfile ? "Loading..." : profile?.username || "Anonymous"}</div>
+        <div className="text-xs opacity-70">PROFILE</div>
+      </div>
+    </button>
 
-                                    {/* Children */}
-                                    {item.children && active === idx && (
-                                        <div className="ml-6 mt-1 space-y-1 text-sm">
-                                            {item.children.map((child, cidx) => (
-                                                <button
-                                                    key={cidx}
-                                                    onClick={() => handleNavigation(child.path)}
-                                                    className="w-full text-left px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-neutral-800"
-                                                >
-                                                    {child.label}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                               
-                                <button
-                                    onClick={() => handleNavigation(item.path)}
-                                    className="w-full text-left flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-200 dark:hover:bg-neutral-700"
-                                >
-                                    <span>{item.icon}</span>
-                                    {item.label}
-                                </button>
-                            )}
-                        </div>
-                    ))}
-                </nav>
+    <button
+      onClick={logout}
+      className="mt-4 w-full border-2 border-current py-2 font-bold uppercase hover:bg-black hover:text-white transition"
+    >
+      LOGOUT
+    </button>
+  </div>
+</aside>
 
-                <button
-                onClick={logout}
-                className="text-sm opacity-70 hover:opacity-100 "
-            >
-                Logout
-            </button>
-                <div className="absolute bottom-0 w-full p-4 border-t text-sm">
-                    <button
-                        onClick={() => handleNavigation("/profile")}
-                        className="w-full text-left flex items-center gap-2 hover:opacity-80 transition-opacity"
-                    >
-                       
-                        <img
-                            className="w-8 h-8 rounded-full"
-                            src={profile?.avatar || "https://i.pravatar.cc/100"}
-                            alt="avatar"
-                        />
-                        <div>
-                            <div className="font-medium">
-                                {loadingProfile ? "Loading..." : profile?.username || "Anonymous"}
-                            </div>
-                            <div className="text-xs opacity-70">View Profile</div>
-                        </div>
-                    </button>
-                </div>
-            </aside>
+
         </>
     )
 }

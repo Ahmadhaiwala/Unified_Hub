@@ -35,56 +35,60 @@ export default function Login() {
 
     return (
         <div>
-            <h2 className="text-2xl font-bold mb-4">Login</h2>
+  <h2 className="text-2xl font-bold mb-4">
+    Login
+  </h2>
 
-            {error && (
-                <p className="text-red-500 text-sm mb-3">{error}</p>
-            )}
+  {error && (
+    <p className="text-red-500 text-sm mb-3">
+      {error}
+    </p>
+  )}
 
-            <form onSubmit={handleLogin} className="space-y-4">
-                <input
-                    type="email"
-                    placeholder="Email"
-                    className={`w-full px-3 py-2 rounded-md border ${themeStyles.input}`}
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                />
+  <form onSubmit={handleLogin} className="space-y-4">
+    <input
+      type="email"
+      placeholder="Email"
+      className={`w-full px-3 py-2 rounded-md border ${themeStyles.input}`}
+      value={email}
+      onChange={(e) => setEmail(e.target.value)}
+      required
+    />
 
-                <input
-                    type="password"
-                    placeholder="Password"
-                    className={`w-full px-3 py-2 rounded-md border ${themeStyles.input}`}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                />
+    <input
+      type="password"
+      placeholder="Password"
+      className={`w-full px-3 py-2 rounded-md border ${themeStyles.input}`}
+      value={password}
+      onChange={(e) => setPassword(e.target.value)}
+      required
+    />
 
-                <button
-                    type="submit"
-                    disabled={loading}
-                    className={`w-full py-2 rounded-md transition ${themeStyles.button}`}
-                >
-                    {loading ? "Logging in..." : "Login"}
-                </button>
-            </form>
+    <button
+      type="submit"
+      disabled={loading}
+      className={`w-full py-2 rounded-md transition ${themeStyles.button}`}
+    >
+      {loading ? "Logging in..." : "Login"}
+    </button>
+  </form>
 
-            {/* OAuth */}
-            <div className="mt-4 space-y-2">
-                <button
-                    onClick={() => loginWithProvider("google")}
-                    className={`w-full py-2 rounded-md border ${themeStyles.themeButton}`}
-                >
-                    Continue with Google
-                </button>
+  <div className="mt-4 space-y-2">
+    <button
+      onClick={() => loginWithProvider("google")}
+      className={`w-full py-2 rounded-md border ${themeStyles.themeButton}`}
+    >
+      Continue with Google
+    </button>
 
-                <button
-                    onClick={() => loginWithProvider("github")}
-                    className={`w-full py-2 rounded-md border ${themeStyles.themeButton}`}
-                >
-                    Continue with GitHub
-                </button>
-            </div>
-        </div>
+    <button
+      onClick={() => loginWithProvider("github")}
+      className={`w-full py-2 rounded-md border ${themeStyles.themeButton}`}
+    >
+      Continue with GitHub
+    </button>
+  </div>
+</div>
+
     )
 }

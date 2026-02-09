@@ -12,25 +12,32 @@ export default function Auth() {
 
   return (
     <div
-      className={`min-h-screen relative flex items-center justify-center
-      transition-all duration-300 ${themeStyles.bg} ${themeStyles.text}`}
+      className={`
+        min-h-screen relative flex items-center justify-center
+        transition-all duration-300
+        ${themeStyles.bg} ${themeStyles.text}
+      `}
     >
-      {/* 🔝 Theme Switcher (Top Right) */}
+      {/* Theme Switcher */}
       <div className="absolute top-4 right-4 flex gap-2 flex-wrap">
         {Object.keys(themes).map((key) => (
           <button
             key={key}
             onClick={() => setTheme(key)}
-            className={`px-3 py-1 rounded-md text-xs font-medium transition-all duration-200
-              hover:scale-105
-              ${theme === key ? themeStyles.button : themeStyles.themeButton}`}
+            className={`
+              px-3 py-1 rounded-md text-xs font-medium
+              transition-all duration-200 hover:scale-105
+              ${theme === key
+                ? themeStyles.button
+                : themeStyles.themeButton}
+            `}
           >
             {themes[key].name}
           </button>
         ))}
       </div>
 
-      {/* 🧊 Auth Card */}
+      {/* Auth Card */}
       <div
         className={`
           w-full max-w-md rounded-2xl p-8 border
@@ -41,7 +48,7 @@ export default function Auth() {
       >
         {/* Title */}
         <h1 className="text-2xl font-bold text-center mb-2">
-          {toggle ? "Welcome back " : "Create an account "}
+          {toggle ? "Welcome back" : "Create an account"}
         </h1>
 
         <p className="text-sm text-center opacity-70 mb-6">
@@ -55,9 +62,9 @@ export default function Auth() {
           {toggle ? <Login /> : <Signup />}
         </div>
 
-        {/* Toggle Login / Signup */}
+        {/* Toggle Button */}
         <button
-          onClick={() => setToggle(!toggle)}
+          onClick={() => setToggle((prev) => !prev)}
           className={`
             mt-6 w-full py-2 rounded-md text-sm font-medium
             transition-all duration-200

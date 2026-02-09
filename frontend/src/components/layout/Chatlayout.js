@@ -7,7 +7,7 @@ export default function ChatLayout() {
         <div className="flex h-screen abc">
             <ChatSidebar />
             <main className={`flex-1 p-4 overflow-y-auto ${themeStyles.bg} ${themeStyles.text}`}>
-                {/* Chat content goes here */}
+               
             </main>
         </div>
     )
