@@ -439,6 +439,13 @@ export default function GroupChatWindow({ groupId, groupName, onMessageSent, onG
                     </div>
                     <div className="flex items-center gap-3">
                         <button
+                            onClick={() => window.location.href = `/assignments/${groupId}`}
+                            className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors bg-green-600 text-white hover:bg-green-700`}
+                            title="View Question Poles"
+                        >
+                            📚 Question Poles
+                        </button>
+                        <button
                             onClick={() => setShowAIChat(!showAIChat)}
                             className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${showAIChat
                                 ? "bg-purple-600 text-white"

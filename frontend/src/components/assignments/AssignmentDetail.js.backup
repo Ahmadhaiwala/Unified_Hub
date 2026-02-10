@@ -1,0 +1,320 @@
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../lib/supabase';
+import './AssignmentDetail.css';
+
+const AssignmentDetail = ({ assignmentId }) => {
+    const { user } = useAuth();
+    const navigate = useNavigate();
+    const [assignment, setAssignment] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [replyText, setReplyText] = useState('');
+    const [submitting, setSubmitting] = useState(false);
+    const [submitSuccess, setSubmitSuccess] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+
+    // Answer filtering and sorting
+    const [filterType, setFilterType] = useState('all'); // 'all', 'manual', 'auto_detected'
+    const [sortBy, setSortBy] = useState('time'); // 'time', 'confidence', 'student'
+    const [searchQuery, setSearchQuery] = useState('');
+
+    useEffect(() => {
+        if (user?.access_token) {
+            fetchAssignmentDetail();
+        }
+    }, [assignmentId, user]);
+
+    const fetchAssignmentDetail = async () => {
+        try {
+            const response = await axios.get(
+                `http://localhost:8000/api/v1/assignments/detail/${assignmentId}`,
+                {
+                    headers: { 'Authorization': `Bearer ${user.access_token}` }
+                }
+            );
+            setAssignment(response.data);
+            setLoading(false);
+        } catch (err) {
+            console.error('Error fetching assignment:', err);
+            setError('Failed to load assignment');
+            setLoading(false);
+        }
+    };
+
+    const handleSubmitReply = async (e) => {
+        e.preventDefault();
+        if (!replyText.trim()) return;
+
+        setSubmitting(true);
+        setSubmitSuccess(false);
+
+        try {
+            await axios.post(
+                `http://localhost:8000/api/v1/assignments/${assignmentId}/submit-reply`,
+                { reply_text: replyText },
+                {
+                    headers: { 'Authorization': `Bearer ${user.access_token}` }
+                }
+            );
+
+            setReplyText('');
+            setSubmitSuccess(true);
+            // Refresh assignment to show new reply
+            fetchAssignmentDetail();
+
+            setTimeout(() => setSubmitSuccess(false), 3000);
+        } catch (err) {
+            console.error('Error submitting reply:', err);
+            alert(err.response?.data?.detail || 'Failed to submit reply');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleDeleteAssignment = async () => {
+        if (!window.confirm('Are you sure you want to delete this question pole? This action cannot be undone.')) {
+            return;
+        }
+
+        setDeleting(true);
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+
+            await axios.delete(
+                `http://localhost:8000/api/v1/assignments/${assignmentId}`,
+                {
+                    headers: { 'Authorization': `Bearer ${session.access_token}` }
+                }
+            );
+
+            alert('Question pole deleted successfully!');
+            // Navigate back to assignments list
+            navigate(`/assignments/${assignment.group_id}`);
+        } catch (err) {
+            console.error('Error deleting assignment:', err);
+            alert(err.response?.data?.detail || 'Failed to delete assignment');
+        } finally {
+            setDeleting(false);
+        }
+    };
+
+    const formatDate = (dateString) => {
+        if (!dateString) return 'No deadline';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    const getSourceIcon = (sourceType) => {
+        switch (sourceType) {
+            case 'pdf': return '📄';
+            case 'message': return '💬';
+            case 'manual': return '✏️';
+            default: return '📝';
+        }
+    };
+
+    // Calculate answer statistics
+    const getAnswerStats = () => {
+        if (!assignment?.linked_replies) return null;
+
+        const replies = assignment.linked_replies;
+        const totalReplies = replies.length;
+        const autoDetected = replies.filter(r => r.submission_type === 'auto_detected').length;
+        const manual = replies.filter(r => r.submission_type === 'manual').length;
+        const avgConfidence = replies.length > 0
+            ? (replies.reduce((sum, r) => sum + (r.confidence_score || 0), 0) / replies.length * 100).toFixed(1)
+            : 0;
+
+        return { totalReplies, autoDetected, manual, avgConfidence };
+    };
+
+    // Get confidence level color
+    const getConfidenceColor = (score) => {
+        if (!score) return '#999';
+        if (score >= 0.7) return '#4CAF50'; // Green - High
+        if (score >= 0.4) return '#FF9800'; // Orange - Medium
+        return '#f44336'; // Red - Low
+    };
+
+    // Filter and sort replies
+    const getFilteredAndSortedReplies = () => {
+        if (!assignment?.linked_replies) return [];
+
+        let filtered = assignment.linked_replies;
+
+        // Filter by type
+        if (filterType !== 'all') {
+            filtered = filtered.filter(r => r.submission_type === filterType);
+        }
+
+        // Filter by search query
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            filtered = filtered.filter(r =>
+                r.student_username?.toLowerCase().includes(query) ||
+                r.student_full_name?.toLowerCase().includes(query) ||
+                r.answer_text?.toLowerCase().includes(query)
+            );
+        }
+
+        // Sort
+        const sorted = [...filtered].sort((a, b) => {
+            if (sortBy === 'time') {
+                return new Date(b.submitted_at) - new Date(a.submitted_at);
+            } else if (sortBy === 'confidence') {
+                return (b.confidence_score || 0) - (a.confidence_score || 0);
+            } else if (sortBy === 'student') {
+                const nameA = a.student_full_name || a.student_username || '';
+                const nameB = b.student_full_name || b.student_username || '';
+                return nameA.localeCompare(nameB);
+            }
+            return 0;
+        });
+
+        return sorted;
+    };
+
+    if (loading) return <div className="loading">Loading question pole...</div>;
+    if (error) return <div className="error">{error}</div>;
+    if (!assignment) return <div className="error">Question pole not found</div>;
+
+    return (
+        <div className="assignment-detail">
+            <div className="detail-header">
+                <div className="header-top">
+                    <span className="source-icon-large">{getSourceIcon(assignment.source_type)}</span>
+                    <div className="header-info">
+                        <h1>{assignment.title}</h1>
+                        {assignment.subject && (
+                            <span className="subject-badge-large">{assignment.subject}</span>
+                        )}
+                    </div>
+                    <button
+                        className="delete-btn"
+                        onClick={handleDeleteAssignment}
+                        disabled={deleting}
+                    >
+                        {deleting ? '🗑️ Deleting...' : '🗑️ Delete'}
+                    </button>
+                </div>
+
+                <div className="assignment-meta">
+                    <div className="meta-item">
+                        <span className="meta-label">Created:</span>
+                        <span>{formatDate(assignment.created_at)}</span>
+                    </div>
+                    <div className="meta-item">
+                        <span className="meta-label">Deadline:</span>
+                        <span className={assignment.due_date ? 'has-deadline' : ''}>
+                            {formatDate(assignment.due_date)}
+                        </span>
+                    </div>
+                    {assignment.ai_confidence && (
+                        <div className="meta-item">
+                            <span className="meta-label">AI Confidence:</span>
+                            <span>{(assignment.ai_confidence * 100).toFixed(0)}%</span>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {assignment.description && (
+                <div className="assignment-description-section">
+                    <h3>Description</h3>
+                    <p>{assignment.description}</p>
+                </div>
+            )}
+
+            {assignment.source_file_path && (
+                <div className="source-file-section">
+                    <h3>Source Document</h3>
+                    <div className="file-download">
+                        <span>📄 {assignment.source_file_path.split('/').pop()}</span>
+                        <button className="download-btn">Download PDF</button>
+                    </div>
+                </div>
+            )}
+
+            <div className="manual-reply-section">
+                <h3>Submit Your Reply</h3>
+                <form onSubmit={handleSubmitReply}>
+                    <textarea
+                        value={replyText}
+                        onChange={(e) => setReplyText(e.target.value)}
+                        placeholder="Type your answer or response here..."
+                        rows="6"
+                        className="reply-textarea"
+                    />
+                    <button
+                        type="submit"
+                        className="submit-reply-btn"
+                        disabled={submitting || !replyText.trim()}
+                    >
+                        {submitting ? 'Submitting...' : 'Submit Reply'}
+                    </button>
+                    {submitSuccess && (
+                        <div className="success-message">✅ Reply submitted successfully!</div>
+                    )}
+                </form>
+            </div>
+
+            <div className="linked-replies-section">
+                <h3>Student Replies ({assignment.linked_replies?.length || 0})</h3>
+
+                {!assignment.linked_replies || assignment.linked_replies.length === 0 ? (
+                    <div className="no-replies">No replies yet</div>
+                ) : (
+                    <div className="replies-list">
+                        {assignment.linked_replies.map(reply => (
+                            <div key={reply.id} className="reply-card">
+                                <div className="reply-header">
+                                    <div className="student-info">
+                                        {reply.student_avatar && (
+                                            <img
+                                                src={reply.student_avatar}
+                                                alt={reply.student_full_name}
+                                                className="student-avatar"
+                                            />
+                                        )}
+                                        <div>
+                                            <div className="student-name">
+                                                {reply.student_full_name || reply.student_username || 'Unknown Student'}
+                                            </div>
+                                            <div className="reply-time">{formatDate(reply.submitted_at)}</div>
+                                        </div>
+                                    </div>
+
+                                    <div className="reply-badges">
+                                        {reply.submission_type === 'auto_detected' ? (
+                                            <span className="badge auto-badge">
+                                                🤖 Auto-detected ({(reply.confidence_score * 100).toFixed(0)}%)
+                                            </span>
+                                        ) : (
+                                            <span className="badge manual-badge">✏️ Manual</span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="reply-content">
+                                    {reply.answer_text}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+export default AssignmentDetail;

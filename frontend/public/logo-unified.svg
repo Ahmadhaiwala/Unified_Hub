@@ -1,0 +1,99 @@
+<svg width="500" height="450" viewBox="250 0 524 450" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Define gradient for U shape -->
+  <defs>
+    <linearGradient id="uGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#a855f7;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6b21a8;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- U-shaped background -->
+  <path d="M 280 80 L 360 80 L 360 280 Q 360 380 440 380 L 584 380 Q 664 380 664 280 L 664 80 L 744 80 L 744 280 Q 744 440 584 440 L 440 440 Q 280 440 280 280 Z" 
+        fill="url(#uGradient)"/>
+  
+  <!-- Vertical bars inside U -->
+  <rect x="354" y="78" width="80" height="280" fill="#8b5cf6" rx="4"/>
+  <rect x="590" y="78" width="80" height="280" fill="#8b5cf6" rx="4"/>
+  
+  <!-- Central hub circle -->
+  <g transform="translate(512, 240)">
+    <!-- Outer black circle -->
+    <circle cx="0" cy="0" r="55" fill="#000000"/>
+    <!-- Middle white ring -->
+    <circle cx="0" cy="0" r="40" fill="#ffffff"/>
+    <!-- Inner orange circle -->
+    <circle cx="0" cy="0" r="22" fill="#fb923c"/>
+  </g>
+  
+  <!-- Top center connections (purple) -->
+  <line x1="512" y1="240" x2="512" y2="90" stroke="#ffffff" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="512" cy="90" r="16" fill="#ffffff"/>
+  <line x1="512" y1="90" x2="512" y2="30" stroke="#8b5cf6" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="512" cy="30" r="14" fill="#8b5cf6"/>
+  <line x1="512" y1="30" x2="512" y2="10" stroke="#8b5cf6" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="512" cy="10" r="10" fill="#8b5cf6"/>
+  
+  <!-- Top-left diagonal connections (purple) -->
+  <line x1="512" y1="240" x2="420" y2="140" stroke="#8b5cf6" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="420" cy="140" r="16" fill="#ffffff"/>
+  <line x1="420" y1="140" x2="360" y2="80" stroke="#8b5cf6" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="360" cy="80" r="14" fill="#8b5cf6"/>
+  
+  <!-- Top-right diagonal connections (orange) -->
+  <line x1="512" y1="240" x2="604" y2="140" stroke="#fb923c" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="604" cy="140" r="16" fill="#fb923c"/>
+  <line x1="604" y1="140" x2="664" y2="80" stroke="#fb923c" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="664" cy="80" r="14" fill="#ffffff" stroke="#fb923c" stroke-width="4"/>
+  
+  <!-- Left horizontal connections (purple) -->
+  <line x1="512" y1="240" x2="370" y2="240" stroke="#8b5cf6" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="370" cy="240" r="16" fill="#8b5cf6"/>
+  <line x1="370" y1="240" x2="290" y2="240" stroke="#8b5cf6" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="290" cy="240" r="14" fill="#8b5cf6"/>
+  
+  <!-- Right horizontal connections (orange) -->
+  <line x1="512" y1="240" x2="654" y2="240" stroke="#fb923c" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="654" cy="240" r="16" fill="#ffffff"/>
+  <line x1="654" y1="240" x2="734" y2="240" stroke="#fb923c" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="734" cy="240" r="14" fill="#fb923c"/>
+  
+  <!-- Bottom-left connections (purple) -->
+  <line x1="512" y1="240" x2="430" y2="340" stroke="#ffffff" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="430" cy="340" r="16" fill="#ffffff"/>
+  <line x1="430" y1="340" x2="380" y2="390" stroke="#8b5cf6" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="380" cy="390" r="14" fill="#fb923c"/>
+  
+  <!-- Bottom-center connections (orange) -->
+  <line x1="512" y1="240" x2="512" y2="360" stroke="#fb923c" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="512" cy="360" r="16" fill="#ffffff" stroke="#fb923c" stroke-width="4"/>
+  
+  <!-- Bottom-right connections (orange) -->
+  <line x1="512" y1="240" x2="594" y2="340" stroke="#fb923c" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="594" cy="340" r="16" fill="#fb923c"/>
+  
+  <!-- Decorative radiating lines (purple - left side) -->
+  <line x1="340" y1="60" x2="290" y2="20" stroke="#8b5cf6" stroke-width="8" stroke-linecap="round"/>
+  <line x1="280" y1="130" x2="220" y2="100" stroke="#8b5cf6" stroke-width="7" stroke-linecap="round"/>
+  <line x1="250" y1="200" x2="190" y2="180" stroke="#8b5cf6" stroke-width="6" stroke-linecap="round"/>
+  
+  <!-- Decorative radiating lines (purple/orange - right side) -->
+  <line x1="684" y1="60" x2="734" y2="20" stroke="#8b5cf6" stroke-width="8" stroke-linecap="round"/>
+  <line x1="744" y1="130" x2="804" y2="100" stroke="#fb923c" stroke-width="7" stroke-linecap="round"/>
+  <line x1="774" y1="200" x2="834" y2="180" stroke="#8b5cf6" stroke-width="6" stroke-linecap="round"/>
+  
+  <!-- Decorative dashed lines -->
+  <line x1="450" y1="30" x2="390" y2="10" stroke="#8b5cf6" stroke-width="7" stroke-dasharray="8,12" stroke-linecap="round"/>
+  <line x1="574" y1="30" x2="634" y2="10" stroke="#8b5cf6" stroke-width="7" stroke-dasharray="8,12" stroke-linecap="round"/>
+  <line x1="320" y1="170" x2="260" y2="150" stroke="#8b5cf6" stroke-width="6" stroke-dasharray="6,10" stroke-linecap="round"/>
+  <line x1="704" y1="170" x2="764" y2="150" stroke="#8b5cf6" stroke-width="6" stroke-dasharray="6,10" stroke-linecap="round"/>
+  <line x1="690" y1="300" x2="750" y2="320" stroke="#8b5cf6" stroke-width="6" stroke-dasharray="6,10" stroke-linecap="round"/>
+  
+  <!-- Small decorative circles -->
+  <circle cx="480" cy="50" r="10" fill="#8b5cf6"/>
+  <circle cx="544" cy="50" r="10" fill="#8b5cf6"/>
+  <circle cx="300" cy="190" r="9" fill="#8b5cf6"/>
+  <circle cx="340" cy="160" r="8" fill="#8b5cf6"/>
+  <circle cx="684" cy="160" r="8" fill="#8b5cf6"/>
+  <circle cx="724" cy="190" r="9" fill="#8b5cf6"/>
+  <circle cx="720" cy="280" r="10" fill="#8b5cf6"/>
+</svg>
