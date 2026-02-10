@@ -1,0 +1,209 @@
+.assignment-list {
+    padding: 24px;
+}
+
+.list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.list-header h2 {
+    margin: 0;
+    font-size: 28px;
+    color: #333;
+}
+
+.list-controls {
+    display: flex;
+    gap: 12px;
+}
+
+.filter-select,
+.sort-select {
+    padding: 10px 16px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    background: white;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.filter-select:hover,
+.sort-select:hover {
+    border-color: #4CAF50;
+}
+
+.loading,
+.error,
+.no-assignments {
+    text-align: center;
+    padding: 48px;
+    color: #666;
+    font-size: 16px;
+}
+
+.error {
+    color: #c62828;
+}
+
+.assignments-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.assignment-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.assignment-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* Deadline status indicator bar at bottom */
+.status-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+}
+
+.status-bar.status-overdue {
+    background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+.status-bar.status-due-today {
+    background: linear-gradient(90deg, #f97316, #ea580c);
+}
+
+.status-bar.status-due-soon {
+    background: linear-gradient(90deg, #f59e0b, #d97706);
+}
+
+.status-bar.status-upcoming {
+    background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.source-icon {
+    font-size: 24px;
+}
+
+.subject-badge {
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.assignment-title {
+    margin: 0 0 12px 0;
+    font-size: 18px;
+    color: #333;
+    line-height: 1.4;
+    font-weight: 600;
+}
+
+.assignment-description {
+    margin: 0 0 16px 0;
+    color: #666;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 16px;
+    border-top: 1px solid #f0f0f0;
+    gap: 12px;
+}
+
+.deadline-compact {
+    font-size: 12px;
+}
+
+.card-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.view-btn {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-weight: 500;
+}
+
+.view-btn:hover {
+    background: #45a049;
+}
+
+.delete-btn-small {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.delete-btn-small:hover {
+    background: #dc2626;
+}
+
+.delete-btn-small:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .assignments-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .list-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .list-controls {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .filter-select,
+    .sort-select {
+        width: 100%;
+    }
+}

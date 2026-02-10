@@ -11,6 +11,8 @@ import Chat from "./pages/Chat"
 import ViewFriend from "./components/friends/ViewFriend"
 import Userls from "./components/users/Userls"
 import UserProfile from "./components/users/UserProfile"
+import AssignmentsPage from "./pages/Assignments"
+import AssignmentDetailPage from "./pages/AssignmentDetail"
 
 export default function App() {
   const { loading } = useAuth()
@@ -36,6 +38,8 @@ export default function App() {
           <Route path="chat" element={<Chat />} />
           <Route path="profile" element={<Profile />} />
           <Route path="friends" element={<ViewFriend />} />
+          <Route path="assignments/:groupId" element={<AssignmentsPage />} />
+          <Route path="assignment-detail/:assignmentId" element={<AssignmentDetailPage />} />
         </Route>
       </Routes>
     </ThemeProvider>

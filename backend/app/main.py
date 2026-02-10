@@ -10,6 +10,7 @@ from app.api.v1.ai_chat import router as ai_chat_router
 from app.api.v1.reminders import router as reminders_router
 from app.api.v1.question_sheets import router as question_sheets_router
 from app.api.v1.notifications import router as notifications_router
+from app.api.v1.assignments import router as assignments_router
 app = FastAPI(title="Unified Hub Backend 🚀")
 
 
@@ -29,6 +30,7 @@ app.include_router(ai_chat_router, prefix="/api/ai", tags=["ai-chat"])
 app.include_router(reminders_router, prefix="/api", tags=["reminders"])
 app.include_router(question_sheets_router, prefix="/api", tags=["question-sheets"])
 app.include_router(notifications_router, prefix="/api", tags=["notifications"])
+app.include_router(assignments_router, prefix="/api/v1", tags=["assignments"])
 @app.get("/")
 def root():
     return {
