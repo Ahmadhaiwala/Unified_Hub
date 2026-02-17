@@ -7,6 +7,7 @@ export default function Userls() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [searchQuery, setSearchQuery] = useState("")
   const { user } = useAuth()
   const { themeStyles } = useTheme()
   const navigate = useNavigate()
@@ -66,6 +67,16 @@ export default function Userls() {
     }
   }
 
+  // Filter users based on search query
+  const filteredUsers = users.filter((u) => {
+    const query = searchQuery.toLowerCase()
+    return (
+      u.username?.toLowerCase().includes(query) ||
+      u.email?.toLowerCase().includes(query) ||
+      u.bio?.toLowerCase().includes(query)
+    )
+  })
+
   if (loading) {
     return (
       <div className={`min-h-screen ${themeStyles.bg} ${themeStyles.text} flex items-center justify-center`}>
@@ -96,9 +107,39 @@ export default function Userls() {
           <p className="opacity-70">Connect with other members of the community</p>
         </div>
 
+        {/* Search Bar */}
+        <div className="mb-8">
+          <div className="relative max-w-2xl">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  placeholder="🔍 Search by username, email, or bio..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className={`w-full px-4 py-3 border-2 ${themeStyles.border} ${themeStyles.cardBg} ${themeStyles.text} font-medium focus:outline-none focus:ring-2 focus:ring-purple-500`}
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 font-bold"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+            {searchQuery && (
+              <p className="mt-2 text-sm opacity-70 font-medium">
+                Found {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''}
+              </p>
+            )}
+          </div>
+        </div>
+
         {/* User Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {users.map((u) => (
+          {filteredUsers.map((u) => (
             <div
               key={u.id}
               className={`${themeStyles.cardBg} ${themeStyles.border} rounded-xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1`}
@@ -164,9 +205,22 @@ export default function Userls() {
         </div>
 
         {/* Empty State */}
-        {users.length === 0 && (
+        {filteredUsers.length === 0 && !searchQuery && (
           <div className="text-center py-12">
             <p className="text-xl opacity-60">No users found</p>
+          </div>
+        )}
+
+        {/* Empty Search State */}
+        {filteredUsers.length === 0 && searchQuery && (
+          <div className="text-center py-12">
+            <p className="text-xl opacity-60 mb-2">No users match "{searchQuery}"</p>
+            <button
+              onClick={() => setSearchQuery("")}
+              className={`px-4 py-2 border-2 ${themeStyles.border} font-bold hover:bg-gray-100 dark:hover:bg-gray-800 transition-all`}
+            >
+              Clear Search
+            </button>
           </div>
         )}
       </div>

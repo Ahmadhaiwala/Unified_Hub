@@ -3,7 +3,7 @@ import os
 from typing import List, Dict
 from datetime import datetime
 from app.core.supabase import supabase
-from app.services.intent_detection_service import intent_detection_service
+
 
 OPENROUTER_API_KEY = os.getenv("OPEN_ROUTER_API_KEY")
 
@@ -13,7 +13,7 @@ You are an AI assistant inside a chat application.
 CORE RULES:
 -strictly follow the group conversation answer check if that conversation he said is correct or not and interpret and give the correct answer nothing should be said without group context
 - Give precise and direct answers.
-- Use minimal words.
+
 - Avoid long explanations unless user explicitly asks.
 - Focus on correctness over creativity.
 - Do not repeat the question.
@@ -21,7 +21,7 @@ CORE RULES:
 - Prefer bullet points over paragraphs when possible.
 
 TOKEN EFFICIENCY:
-- Keep responses under 120 words unless necessary.
+
 - Do not include examples unless requested.
 - No storytelling.
 
@@ -43,7 +43,7 @@ class AIChatService:
             return {
                 "response": "AI service not configured.",
                 "timestamp": datetime.now().isoformat(),
-                "error": True
+                "error": Tru
             }
 
         try:
@@ -119,37 +119,13 @@ class AIChatService:
             await self._store_message(user_id, message, ai_response, group_id)
             print(f"✅ Message stored successfully")
 
-            # Detect admin intents (reminders, etc.) if in group chat
-            suggested_action = None
-            if group_id:
-                try:
-                    is_admin = await self._check_if_admin(user_id, group_id)
-                    if is_admin:
-                        print(f"🤖 Checking for reminder intent...")
-                        intent = await intent_detection_service.detect_reminder_intent(message)
-                        
-                        if intent.detected and intent.confidence > 0.3:
-                            print(f"✅ Reminder intent detected! Confidence: {intent.confidence}")
-                            suggested_action = {
-                                "type": "create_reminder",
-                                "data": {
-                                    "title": intent.title,
-                                    "description": intent.description,
-                                    "due_date": intent.due_date,
-                                    "priority": intent.priority,
-                                    "confidence": intent.confidence
-                                }
-                            }
-                        else:
-                            print(f"ℹ️ No strong reminder intent (confidence: {intent.confidence})")
-                except Exception as e:
-                    print(f"⚠️ Intent detection error: {str(e)}")
-
+            # suggested_action removed as part of reminder cleanup
+            
             return {
                 "response": ai_response,
                 "timestamp": datetime.now().isoformat(),
                 "error": False,
-                "suggested_action": suggested_action
+                "suggested_action": None
             }
 
         except Exception as e:

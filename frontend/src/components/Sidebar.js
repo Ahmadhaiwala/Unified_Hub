@@ -5,7 +5,11 @@ import { useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 
 const menu = [
-
+  {
+    label: "Home",
+    icon: "🏠",
+    path: "/",
+  },
   {
     label: "Friends",
     icon: "👤",

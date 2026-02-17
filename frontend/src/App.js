@@ -33,6 +33,7 @@ export default function App() {
         >
 
 
+          <Route index element={<Home />} />
           <Route path="users" element={<Userls />} />
           <Route path="users/:userId" element={<UserProfile />} />
           <Route path="chat" element={<Chat />} />

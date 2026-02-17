@@ -14,6 +14,8 @@ export default function Profile() {
   const [updateSuccess, setUpdateSuccess] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [photoPreview, setPhotoPreview] = useState(null)
+  const [groupCount, setGroupCount] = useState(0)
+  const [friendCount, setFriendCount] = useState(0)
   const fileInputRef = useRef(null)
   const [formData, setFormData] = useState({
     username: "",
@@ -31,6 +33,8 @@ export default function Profile() {
       }
 
       try {
+        // Fetch profile
+        console.log("🔍 Fetching profile data...")
         const response = await fetch("http://localhost:8000/api/profile", {
           method: "GET",
           headers: {
@@ -44,17 +48,52 @@ export default function Profile() {
         }
 
         const data = await response.json()
+        console.log("✅ Profile data received:", data)
         setProfile(data)
         setFormData({
           username: data?.username || "",
-          email: user?.email || "",
+          email: user?.email || data?.email || "",
           bio: data?.bio || "",
           avatar_url: data?.avatar_url || "",
         })
         setPhotoPreview(data?.avatar_url || null)
+
+        // Fetch groups count
+        console.log("🔍 Fetching groups...")
+        const groupsRes = await fetch("http://localhost:8000/api/chatgroups", {
+          headers: { Authorization: `Bearer ${user.access_token}` }
+        })
+        console.log("Groups response status:", groupsRes.status)
+        if (groupsRes.ok) {
+          const groupsData = await groupsRes.json()
+          console.log("✅ Groups data:", groupsData)
+          // API returns { count: X, groups: [...] }
+          const count = groupsData.count || groupsData.groups?.length || 0
+          console.log("📊 Groups count:", count)
+          setGroupCount(count)
+        } else {
+          console.error("❌ Failed to fetch groups:", groupsRes.status)
+        }
+
+        // Fetch friends count
+        console.log("🔍 Fetching friends...")
+        const friendsRes = await fetch("http://localhost:8000/api/friends", {
+          headers: { Authorization: `Bearer ${user.access_token}` }
+        })
+        console.log("Friends response status:", friendsRes.status)
+        if (friendsRes.ok) {
+          const friendsData = await friendsRes.json()
+          console.log("✅ Friends data:", friendsData)
+          // API returns array of friends (already accepted)
+          const count = friendsData.length || 0
+          console.log("📊 Friends count:", count)
+          setFriendCount(count)
+        } else {
+          console.error("❌ Failed to fetch friends:", friendsRes.status)
+        }
       } catch (err) {
         setError(err.message)
-        console.error("Profile fetch error:", err)
+        console.error("❌ Profile fetch error:", err)
       } finally {
         setLoading(false)
       }
@@ -183,7 +222,13 @@ export default function Profile() {
   if (loading) {
     return (
       <div className={`flex items-center justify-center min-h-screen ${themeStyles.bg}`}>
-        <p className={`text-lg ${themeStyles.text}`}>Loading profile...</p>
+        <div className="text-center">
+          <div className="relative w-24 h-24 mx-auto mb-4">
+            <div className="absolute inset-0 border-4 border-purple-200 dark:border-purple-900 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-purple-600 rounded-full border-t-transparent animate-spin"></div>
+          </div>
+          <p className={`text-lg font-bold ${themeStyles.text}`}>Loading your profile...</p>
+        </div>
       </div>
     )
   }
@@ -191,41 +236,63 @@ export default function Profile() {
   if (error) {
     return (
       <div className={`flex items-center justify-center min-h-screen ${themeStyles.bg}`}>
-        <p className={`text-lg text-red-500`}>Error: {error}</p>
+        <div className={`${themeStyles.cardBg} border-4 border-red-500 p-8 rounded-xl text-center`}>
+          <div className="text-6xl mb-4">❌</div>
+          <p className={`text-lg text-red-500 font-bold`}>Error: {error}</p>
+        </div>
       </div>
     )
   }
 
+  const accountAge = profile?.created_at
+    ? Math.floor((new Date() - new Date(profile.created_at)) / (1000 * 60 * 60 * 24))
+    : 0
+
   return (
-    <div className={`min-h-screen ${themeStyles.bg} ${themeStyles.text}`}>
-      <div className="max-w-4xl mx-auto p-6">
-        {/* Success Message */}
+    <div className={`min-h-screen ${themeStyles.bg} ${themeStyles.text} p-6`}>
+      <div className="max-w-7xl mx-auto">
+
+        {/* Success Message with Animation */}
         {updateSuccess && (
-          <div className="mb-4 p-4 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100 rounded-lg">
-            ✓ Profile updated successfully!
+          <div className="mb-6 p-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold flex items-center gap-3 animate-fade-in shadow-lg">
+            <span className="text-2xl animate-bounce">✓</span>
+            <span>Profile updated successfully!</span>
           </div>
         )}
 
-        {/* Profile Header */}
-        <div className={`${themeStyles.cardBg} ${themeStyles.border} rounded-lg p-8 mb-6 shadow-lg`}>
-          <div className="flex items-center justify-between gap-6">
-            <div className="flex items-center gap-6">
-              {/* Avatar with Upload */}
-              <div className="relative group">
+        {/* Error Message */}
+        {updateError && (
+          <div className="mb-6 p-4 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-xl font-bold flex items-center gap-3 animate-fade-in shadow-lg">
+            <span className="text-2xl">✗</span>
+            <span>Error: {updateError}</span>
+          </div>
+        )}
+
+        {/* Profile Header Card with Animation */}
+        <div className={`${themeStyles.cardBg} border-4 ${themeStyles.border} rounded-2xl p-8 mb-8 shadow-2xl animate-slide-up hover:shadow-purple-500/20 transition-all duration-300`}>
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
+
+            {/* Avatar Section with Cool Hover Effect */}
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-300 animate-pulse"></div>
+              <div className="relative">
                 <img
                   src={photoPreview || profile?.avatar_url || `https://ui-avatars.com/api/?name=${profile?.username || 'User'}&size=200&background=random`}
                   alt="avatar"
-                  className="w-32 h-32 rounded-full border-4 border-gray-200 dark:border-gray-700 object-cover shadow-lg"
+                  className="w-40 h-40 rounded-full border-4 border-white dark:border-gray-900 object-cover shadow-2xl transform group-hover:scale-105 transition-transform duration-300"
                 />
                 <button
                   onClick={handlePhotoClick}
                   disabled={uploadingPhoto}
-                  className="absolute inset-0 w-32 h-32 rounded-full bg-black bg-opacity-0 hover:bg-opacity-50 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer"
+                  className="absolute inset-0 w-40 h-40 rounded-full bg-black bg-opacity-0 hover:bg-opacity-60 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer"
                 >
                   {uploadingPhoto ? (
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-white"></div>
                   ) : (
-                    <span className="text-white text-3xl">📷</span>
+                    <div className="text-center">
+                      <span className="text-white text-4xl block mb-1">📷</span>
+                      <span className="text-white text-xs font-bold">Change Photo</span>
+                    </div>
                   )}
                 </button>
                 <input
@@ -236,159 +303,192 @@ export default function Profile() {
                   className="hidden"
                 />
               </div>
-              <div>
-                <h1 className="text-3xl font-bold mb-2">
-                  {profile?.username || "User"} {profile?.last_name || ""}
-                </h1>
-                {!isEditing ? (
-                  <>
-                    <p className="opacity-70">{profile?.username || user?.email}</p>
-                    <p className="text-sm opacity-60 mt-2">{profile?.bio || "No bio added yet"}</p>
-                  </>
-                ) : (
-                  <div className="mt-2 space-y-2">
-                    <input
-                      type="text"
-                      name="bio"
-                      value={formData.bio}
-                      onChange={handleInputChange}
-                      placeholder="Add a bio..."
-                      className="w-full px-3 py-1 rounded text-sm bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600"
-                    />
-                  </div>
-                )}
-              </div>
             </div>
-            <div>
+
+            {/* Profile Info */}
+            <div className="flex-1 text-center md:text-left">
+              <h1 className="text-5xl font-black mb-2 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent animate-fade-in">
+                {profile?.username || "User"}
+              </h1>
+              <p className="text-xl opacity-70 mb-1">{user?.email}</p>
+              {!isEditing ? (
+                <p className="text-lg opacity-80 mt-4 italic">
+                  "{profile?.bio || "No bio added yet. Add one to tell others about yourself!"}"
+                </p>
+              ) : (
+                <div className="mt-4">
+                  <textarea
+                    name="bio"
+                    value={formData.bio}
+                    onChange={handleInputChange}
+                    placeholder="Tell us about yourself..."
+                    className={`w-full px-4 py-3 border-2 ${themeStyles.border} ${themeStyles.cardBg} rounded-xl font-medium focus:outline-none focus:ring-4 focus:ring-purple-500/50 transition-all`}
+                    rows="3"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col gap-3">
               {!isEditing ? (
                 <button
                   onClick={handleEditClick}
-                  className={`px-6 py-2 rounded-lg font-medium transition-all ${themeStyles.button} hover:scale-105`}
+                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl hover:scale-105 hover:shadow-lg transition-all duration-300 flex items-center gap-2"
                 >
-                  ✏️ Edit Profile
+                  <span>✏️</span>
+                  <span>Edit Profile</span>
                 </button>
               ) : (
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleCancel}
-                    disabled={updating}
-                    className="px-4 py-2 rounded-lg font-medium bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 transition-all disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
+                <>
                   <button
                     onClick={handleUpdateProfile}
                     disabled={updating}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all ${themeStyles.button} disabled:opacity-50`}
+                    className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold rounded-xl hover:scale-105 hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   >
-                    {updating ? "Saving..." : "Save Changes"}
+                    <span>{updating ? "⏳" : "💾"}</span>
+                    <span>{updating ? "Saving..." : "Save Changes"}</span>
                   </button>
-                </div>
+                  <button
+                    onClick={handleCancel}
+                    disabled={updating}
+                    className="px-6 py-3 bg-gray-500 text-white font-bold rounded-xl hover:scale-105 hover:shadow-lg transition-all duration-300 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                </>
               )}
             </div>
           </div>
         </div>
 
-        {/* Error Message */}
-        {updateError && (
-          <div className="mb-4 p-4 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-100 rounded-lg">
-            ✗ Error: {updateError}
-          </div>
-        )}
-
-        {/* Profile Details */}
-        {!isEditing ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Personal Info */}
-            <div className={`${themeStyles.cardBg} ${themeStyles.border} rounded-lg p-6 shadow-lg`}>
-              <h2 className="text-xl font-bold mb-4">Personal Information</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm opacity-70">Email</label>
-                  <p className="font-medium">{user.email}</p>
-                </div>
-                <div>
-                  <label className="text-sm opacity-70">Username</label>
-                  <p className="font-medium">{profile?.username || "N/A"}</p>
-                </div>
-                <div>
-                  <label className="text-sm opacity-70">Phone</label>
-                  <p className="font-medium">{profile?.phone || "Not provided"}</p>
-                </div>
-                <div>
-                  <label className="text-sm opacity-70">Location</label>
-                  <p className="font-medium">{profile?.location || "Not provided"}</p>
-                </div>
+        {/* Stats Cards with Animations */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          {/* Friends Count */}
+          <div className={`${themeStyles.cardBg} border-4 ${themeStyles.border} rounded-2xl p-6 hover:scale-105 hover:shadow-xl transition-all duration-300 animate-slide-up cursor-pointer group`}>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-4xl group-hover:scale-125 transition-transform duration-300">👥</span>
+              <div className="text-right">
+                <p className="text-3xl font-black text-blue-600 dark:text-blue-400">
+                  {friendCount}
+                </p>
+                <p className="text-xs font-bold uppercase opacity-70">Friends</p>
               </div>
             </div>
+          </div>
 
-            {/* Account Info */}
-            <div className={`${themeStyles.cardBg} ${themeStyles.border} rounded-lg p-6 shadow-lg`}>
-              <h2 className="text-xl font-bold mb-4">Account Information</h2>
+          {/* Groups Count */}
+          <div className={`${themeStyles.cardBg} border-4 ${themeStyles.border} rounded-2xl p-6 hover:scale-105 hover:shadow-xl transition-all duration-300 animate-slide-up cursor-pointer group`} style={{ animationDelay: '0.1s' }}>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-4xl group-hover:scale-125 transition-transform duration-300">💬</span>
+              <div className="text-right">
+                <p className="text-3xl font-black text-green-600 dark:text-green-400">
+                  {groupCount}
+                </p>
+                <p className="text-xs font-bold uppercase opacity-70">Groups</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Account Age */}
+          <div className={`${themeStyles.cardBg} border-4 ${themeStyles.border} rounded-2xl p-6 hover:scale-105 hover:shadow-xl transition-all duration-300 animate-slide-up cursor-pointer group`} style={{ animationDelay: '0.2s' }}>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-4xl group-hover:scale-125 transition-transform duration-300">📅</span>
+              <div className="text-right">
+                <p className="text-3xl font-black text-purple-600 dark:text-purple-400">
+                  {accountAge}
+                </p>
+                <p className="text-xs font-bold uppercase opacity-70">Days</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Status Badge */}
+          <div className={`${themeStyles.cardBg} border-4 ${themeStyles.border} rounded-2xl p-6 hover:scale-105 hover:shadow-xl transition-all duration-300 animate-slide-up cursor-pointer group`} style={{ animationDelay: '0.3s' }}>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-4xl group-hover:scale-125 transition-transform duration-300">✨</span>
+              <div className="text-right">
+                <p className="text-2xl font-black text-green-600 dark:text-green-400">
+                  Active
+                </p>
+                <p className="text-xs font-bold uppercase opacity-70">Status</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Profile Details Section */}
+        {!isEditing ? (
+          <div className="mb-8">
+
+            {/* Personal Information Card */}
+            <div className={`${themeStyles.cardBg} border-4 ${themeStyles.border} rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 animate-fade-in`}>
+              <h2 className="text-2xl font-black uppercase mb-6 flex items-center gap-2 border-b-4 border-current pb-3">
+                <span>👤</span>
+                <span>Personal Info</span>
+              </h2>
               <div className="space-y-4">
-                <div>
-                  <label className="text-sm opacity-70">Account Created</label>
-                  <p className="font-medium">
-                    {profile?.created_at
-                      ? new Date(profile.created_at).toLocaleDateString()
-                      : "N/A"}
-                  </p>
+                <div className="flex items-start gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all">
+                  <span className="text-2xl">📧</span>
+                  <div>
+                    <label className="text-sm font-bold uppercase opacity-70 block">Email</label>
+                    <p className="font-medium text-lg">{user.email}</p>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm opacity-70">Last Updated</label>
-                  <p className="font-medium">
-                    {profile?.updated_at
-                      ? new Date(profile.updated_at).toLocaleDateString()
-                      : "N/A"}
-                  </p>
+                <div className="flex items-start gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all">
+                  <span className="text-2xl">🏷️</span>
+                  <div>
+                    <label className="text-sm font-bold uppercase opacity-70 block">Username</label>
+                    <p className="font-medium text-lg">{profile?.username || "N/A"}</p>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm opacity-70">Role</label>
-                  <p className="font-medium">{profile?.role || "User"}</p>
-                </div>
-                <div>
-                  <label className="text-sm opacity-70">Status</label>
-                  <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
-                    {profile?.is_active ? "Active" : "Inactive"}
-                  </span>
+                <div className="flex items-start gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all">
+                  <span className="text-2xl">💭</span>
+                  <div className="flex-1">
+                    <label className="text-sm font-bold uppercase opacity-70 block">Bio</label>
+                    <p className="font-medium italic">{profile?.bio || "No bio added"}</p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         ) : (
           /* Edit Mode Form */
-          <div className={`${themeStyles.cardBg} ${themeStyles.border} rounded-lg p-6 shadow-lg`}>
-            <h2 className="text-xl font-bold mb-6">Edit Profile Information</h2>
-            <div className="space-y-4">
+          <div className={`${themeStyles.cardBg} border-4 ${themeStyles.border} rounded-2xl p-8 shadow-xl mb-8 animate-fade-in`}>
+            <h2 className="text-3xl font-black uppercase mb-6 flex items-center gap-3 border-b-4 border-current pb-4">
+              <span>✏️</span>
+              <span>Edit Profile</span>
+            </h2>
+            <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium mb-2">Username</label>
+                <label className="block text-sm font-bold uppercase mb-3 opacity-70">Username</label>
                 <input
                   type="text"
                   name="username"
                   value={formData.username}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-4 py-3 border-2 ${themeStyles.border} ${themeStyles.cardBg} rounded-xl font-medium focus:outline-none focus:ring-4 focus:ring-purple-500/50 transition-all`}
                   placeholder="Enter username"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Email</label>
+                <label className="block text-sm font-bold uppercase mb-3 opacity-70">Email</label>
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-4 py-3 border-2 ${themeStyles.border} ${themeStyles.cardBg} rounded-xl font-medium focus:outline-none focus:ring-4 focus:ring-purple-500/50 transition-all`}
                   placeholder="Enter email"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Bio</label>
+                <label className="block text-sm font-bold uppercase mb-3 opacity-70">Bio</label>
                 <textarea
                   name="bio"
                   value={formData.bio}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-4 py-3 border-2 ${themeStyles.border} ${themeStyles.cardBg} rounded-xl font-medium focus:outline-none focus:ring-4 focus:ring-purple-500/50 transition-all`}
                   placeholder="Tell us about yourself..."
                   rows="4"
                 />
@@ -396,17 +496,30 @@ export default function Profile() {
             </div>
           </div>
         )}
-
-        {/* Full Profile Data */}
-        {profile && (
-          <div className={`${themeStyles.cardBg} ${themeStyles.border} rounded-lg p-6 shadow-lg mt-6`}>
-            <h2 className="text-xl font-bold mb-4">Full Profile Data</h2>
-            <pre className="bg-gray-100 dark:bg-gray-900 p-4 rounded overflow-auto text-xs">
-              {JSON.stringify(profile, null, 2)}
-            </pre>
-          </div>
-        )}
       </div>
+
+      <style>{`
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slide-up {
+          from { 
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to { 
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.6s ease-out forwards;
+        }
+        .animate-slide-up {
+          animation: slide-up 0.6s ease-out forwards;
+        }
+      `}</style>
     </div>
   )
 }
