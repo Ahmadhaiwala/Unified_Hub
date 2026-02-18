@@ -73,10 +73,10 @@ export default function GroupChatList({ onSelectGroup, selectedGroupId, refreshT
                                 <img 
                                     src={group.avatar_url} 
                                     alt={group.name}
-                                    className="w-12 h-12 rounded-full object-cover border-2 border-purple-500 flex-shrink-0"
+                                    className="w-12 h-12 rounded-full object-cover border-2 border-blue-500 flex-shrink-0"
                                 />
                             ) : (
-                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center border-2 border-purple-500 flex-shrink-0">
+                                <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center border-2 border-blue-500 flex-shrink-0">
                                     <span className="text-white text-lg font-bold">
                                         {group.name?.charAt(0).toUpperCase()}
                                     </span>

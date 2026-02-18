@@ -96,7 +96,7 @@ export default function Chat() {
                 <button
                     onClick={() => setActiveTab("ai")}
                     className={`flex-1 px-6 py-3 font-medium transition-colors ${activeTab === "ai"
-                        ? `${themeStyles.text} border-b-2 border-purple-500`
+                        ? `${themeStyles.text} border-b-2 border-blue-500`
                         : `${themeStyles.accent} hover:${themeStyles.text}`
                         }`}
                 >

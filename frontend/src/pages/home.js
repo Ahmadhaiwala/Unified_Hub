@@ -2,6 +2,8 @@ import { useAuth } from "../context/AuthContext"
 import { useEffect, useState } from "react"
 import { useTheme } from "../context/ThemeContext"
 import { useNavigate } from "react-router-dom"
+import { Search, Users, MessageCircle, User, UserPlus, MessageSquare } from "lucide-react"
+import WeeklyTaskStats from "../components/tasks/WeeklyTaskStats"
 
 export default function Home() {
   const { user, loading } = useAuth()
@@ -66,10 +68,10 @@ export default function Home() {
   if (loading) return <div className={`min-h-screen ${themeStyles.bg} flex items-center justify-center`}><p>Loading...</p></div>
 
   const quickActions = [
-    { label: "Discover Users", icon: "🔍", path: "/users", color: "bg-purple-500" },
-    { label: "My Friends", icon: "👥", path: "/friends", color: "bg-blue-500" },
-    { label: "Start Chat", icon: "💬", path: "/chat", color: "bg-green-500" },
-    { label: "My Profile", icon: "👤", path: "/profile", color: "bg-orange-500" },
+    { label: "Discover Users", icon: Search, path: "/users", color: "bg-blue-500" },
+    { label: "My Friends", icon: Users, path: "/friends", color: "bg-blue-500" },
+    { label: "Start Chat", icon: MessageCircle, path: "/chat", color: "bg-green-500" },
+    { label: "My Profile", icon: User, path: "/profile", color: "bg-orange-500" },
   ]
 
   const pendingRequests = [] // Friends API returns accepted friends only, no pending requests
@@ -99,7 +101,7 @@ export default function Home() {
                 <p className="text-sm font-bold uppercase opacity-70 mb-1">Friends</p>
                 <p className="text-4xl font-black">{stats.friendsCount}</p>
               </div>
-              <div className="text-5xl">👥</div>
+              <Users size={48} className="text-blue-500" />
             </div>
           </div>
 
@@ -109,7 +111,7 @@ export default function Home() {
                 <p className="text-sm font-bold uppercase opacity-70 mb-1">Pending Requests</p>
                 <p className="text-4xl font-black">{stats.pendingRequests}</p>
               </div>
-              <div className="text-5xl">📬</div>
+              <UserPlus size={48} className="text-orange-500" />
             </div>
           </div>
 
@@ -119,7 +121,7 @@ export default function Home() {
                 <p className="text-sm font-bold uppercase opacity-70 mb-1">Groups</p>
                 <p className="text-4xl font-black">{stats.groupsCount}</p>
               </div>
-              <div className="text-5xl">💬</div>
+              <MessageSquare size={48} className="text-green-500" />
             </div>
           </div>
         </div>
@@ -133,13 +135,13 @@ export default function Home() {
             {pendingRequests.length > 0 && (
               <div className={`${themeStyles.cardBg} border-4 ${themeStyles.border} p-6`}>
                 <h2 className="text-2xl font-black uppercase mb-4 flex items-center gap-2">
-                  <span>📬</span> Friend Requests
+                  <UserPlus size={24} /> Friend Requests
                 </h2>
                 <div className="space-y-3">
                   {pendingRequests.slice(0, 3).map((request) => (
                     <div key={request.id} className={`border-2 ${themeStyles.border} p-4 flex items-center justify-between`}>
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-xl">
+                        <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xl">
                           {request.sender?.username?.[0]?.toUpperCase() || '?'}
                         </div>
                         <div>
@@ -195,7 +197,7 @@ export default function Home() {
                   <p className="mb-4">You're not in any groups yet</p>
                   <button
                     onClick={() => navigate('/chat')}
-                    className={`px-6 py-3 border-2 ${themeStyles.border} font-bold hover:bg-purple-600 hover:text-white transition-all`}
+                    className={`px-6 py-3 border-2 ${themeStyles.border} font-bold hover:bg-blue-600 hover:text-white transition-all`}
                   >
                     Create Your First Group
                   </button>
@@ -207,20 +209,26 @@ export default function Home() {
           {/* Sidebar - Right Column */}
           <div className="space-y-8">
 
+            {/* Weekly Task Statistics */}
+            <WeeklyTaskStats />
+
             {/* Quick Actions */}
             <div className={`${themeStyles.cardBg} border-4 ${themeStyles.border} p-6`}>
               <h2 className="text-2xl font-black uppercase mb-4">Quick Actions</h2>
               <div className="space-y-3">
-                {quickActions.map((action) => (
-                  <button
-                    key={action.label}
-                    onClick={() => navigate(action.path)}
-                    className={`w-full border-2 ${themeStyles.border} p-4 font-bold hover:bg-gray-800 hover:text-white transition-all flex items-center gap-3`}
-                  >
-                    <span className="text-2xl">{action.icon}</span>
-                    <span>{action.label}</span>
-                  </button>
-                ))}
+                {quickActions.map((action) => {
+                  const IconComponent = action.icon
+                  return (
+                    <button
+                      key={action.label}
+                      onClick={() => navigate(action.path)}
+                      className={`w-full border-2 ${themeStyles.border} p-4 font-bold hover:bg-gray-800 hover:text-white transition-all flex items-center gap-3`}
+                    >
+                      <IconComponent size={24} />
+                      <span>{action.label}</span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
 

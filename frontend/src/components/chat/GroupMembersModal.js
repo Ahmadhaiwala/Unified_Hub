@@ -209,7 +209,7 @@ export default function GroupMembersModal({ groupId, groupName, onClose, onGroup
                                         >
                                             <div className="flex items-center gap-3">
                                                 {/* Avatar */}
-                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold">
+                                                <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
                                                     {member.username?.[0]?.toUpperCase() ||
                                                         member.email?.[0]?.toUpperCase() || "?"}
                                                 </div>
@@ -549,7 +549,7 @@ function AddMemberModal({ groupId, onClose }) {
                                             {/* Avatar */}
                                             <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${isSelected
                                                 ? "bg-white text-blue-500"
-                                                : "bg-gradient-to-br from-blue-400 to-purple-500 text-white"
+                                                : "bg-blue-600 text-white"
                                                 }`}>
                                                 {availUser.username?.[0]?.toUpperCase() ||
                                                     availUser.email?.[0]?.toUpperCase() || "?"}

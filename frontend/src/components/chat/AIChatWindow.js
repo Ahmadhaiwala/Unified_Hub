@@ -282,7 +282,7 @@ export default function AIChatWindow({ groupId = null, groupName = null }) {
             {/* Header */}
             <div className={`px-6 py-4 ${themeStyles.secondbar} ${themeStyles.border} border-b`}>
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
                         <span className="text-white text-lg">🤖</span>
                     </div>
                     <div>
@@ -298,7 +298,7 @@ export default function AIChatWindow({ groupId = null, groupName = null }) {
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
                 {messages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-center">
-                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mb-4">
+                        <div className="w-20 h-20 rounded-full bg-blue-600 flex items-center justify-center mb-4">
                             <span className="text-4xl">🤖</span>
                         </div>
                         <h4 className={`text-lg font-semibold ${themeStyles.text} mb-2`}>

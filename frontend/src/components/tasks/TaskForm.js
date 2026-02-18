@@ -15,12 +15,26 @@ export default function TaskForm({ task, onClose, onSuccess }) {
         category: "",
         tags: [],
         due_date: "",
+        start_time: "",
+        end_time: "",
         estimated_duration: "",
-        is_recurring: false
+        is_recurring: false,
+        recurrence_pattern: null
     })
 
     useEffect(() => {
         if (task) {
+            // Extract time from due_date if it exists
+            let startTime = ""
+            let endTime = ""
+            let dueDate = ""
+            
+            if (task.due_date) {
+                const date = new Date(task.due_date)
+                dueDate = date.toISOString().split("T")[0]
+                startTime = date.toTimeString().slice(0, 5)
+            }
+            
             setFormData({
                 title: task.title || "",
                 description: task.description || "",
@@ -28,9 +42,12 @@ export default function TaskForm({ task, onClose, onSuccess }) {
                 priority: task.priority || "medium",
                 category: task.category || "",
                 tags: task.tags || [],
-                due_date: task.due_date ? task.due_date.split("T")[0] : "",
+                due_date: dueDate,
+                start_time: startTime,
+                end_time: endTime,
                 estimated_duration: task.estimated_duration || "",
-                is_recurring: task.is_recurring || false
+                is_recurring: task.is_recurring || false,
+                recurrence_pattern: task.recurrence_pattern || null
             })
         }
     }, [task])
@@ -40,11 +57,28 @@ export default function TaskForm({ task, onClose, onSuccess }) {
         setLoading(true)
 
         try {
+            // Combine date and time if both are provided
+            let dueDateTime = null
+            if (formData.due_date) {
+                if (formData.start_time) {
+                    dueDateTime = new Date(`${formData.due_date}T${formData.start_time}`).toISOString()
+                } else {
+                    dueDateTime = new Date(formData.due_date).toISOString()
+                }
+            }
+
             const payload = {
-                ...formData,
+                title: formData.title,
+                description: formData.description,
+                status: formData.status,
+                priority: formData.priority,
+                category: formData.category,
+                tags: formData.tags,
                 user_id: user.user.id,
                 estimated_duration: formData.estimated_duration ? parseInt(formData.estimated_duration) : null,
-                due_date: formData.due_date ? new Date(formData.due_date).toISOString() : null
+                due_date: dueDateTime,
+                is_recurring: formData.is_recurring,
+                recurrence_pattern: formData.is_recurring ? formData.recurrence_pattern : null
             }
 
             let result
@@ -73,6 +107,44 @@ export default function TaskForm({ task, onClose, onSuccess }) {
             setLoading(false)
         }
     }
+
+    const handleRecurringChange = (checked) => {
+        if (checked) {
+            setFormData({
+                ...formData,
+                is_recurring: true,
+                recurrence_pattern: {
+                    type: 'daily',
+                    days: [1, 2, 3, 4, 5, 6] // Monday to Saturday
+                }
+            })
+        } else {
+            setFormData({
+                ...formData,
+                is_recurring: false,
+                recurrence_pattern: null
+            })
+        }
+    }
+
+    const toggleDay = (day) => {
+        if (!formData.recurrence_pattern) return
+        
+        const days = formData.recurrence_pattern.days || []
+        const newDays = days.includes(day)
+            ? days.filter(d => d !== day)
+            : [...days, day].sort((a, b) => a - b)
+        
+        setFormData({
+            ...formData,
+            recurrence_pattern: {
+                ...formData.recurrence_pattern,
+                days: newDays
+            }
+        })
+    }
+
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
     const handleTagInput = (e) => {
         if (e.key === "Enter" && e.target.value.trim()) {
@@ -213,6 +285,32 @@ export default function TaskForm({ task, onClose, onSuccess }) {
                             </div>
                         </div>
 
+                        {/* Time Range */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className={`block text-sm font-medium ${themeStyles.text} mb-1`}>
+                                    Start Time
+                                </label>
+                                <input
+                                    type="time"
+                                    value={formData.start_time}
+                                    onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                                    className={`w-full px-3 py-2 rounded-lg border ${themeStyles.input}`}
+                                />
+                            </div>
+                            <div>
+                                <label className={`block text-sm font-medium ${themeStyles.text} mb-1`}>
+                                    End Time
+                                </label>
+                                <input
+                                    type="time"
+                                    value={formData.end_time}
+                                    onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+                                    className={`w-full px-3 py-2 rounded-lg border ${themeStyles.input}`}
+                                />
+                            </div>
+                        </div>
+
                         {/* Estimated Duration */}
                         <div>
                             <label className={`block text-sm font-medium ${themeStyles.text} mb-1`}>
@@ -260,12 +358,58 @@ export default function TaskForm({ task, onClose, onSuccess }) {
                             )}
                         </div>
 
+                        {/* Recurring Task */}
+                        <div className="border-t pt-4">
+                            <div className="flex items-center gap-2 mb-3">
+                                <input
+                                    type="checkbox"
+                                    id="is_recurring"
+                                    checked={formData.is_recurring}
+                                    onChange={(e) => handleRecurringChange(e.target.checked)}
+                                    className="w-4 h-4"
+                                />
+                                <label htmlFor="is_recurring" className={`text-sm font-medium ${themeStyles.text}`}>
+                                    Make this a recurring daily task
+                                </label>
+                            </div>
+
+                            {formData.is_recurring && (
+                                <div>
+                                    <label className={`block text-sm font-medium ${themeStyles.text} mb-2`}>
+                                        Select Days
+                                    </label>
+                                    <div className="flex gap-2 flex-wrap">
+                                        {dayNames.map((day, idx) => {
+                                            const isSelected = formData.recurrence_pattern?.days?.includes(idx)
+                                            return (
+                                                <button
+                                                    key={idx}
+                                                    type="button"
+                                                    onClick={() => toggleDay(idx)}
+                                                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                                        isSelected
+                                                            ? 'bg-blue-600 text-white'
+                                                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                                                    }`}
+                                                >
+                                                    {day}
+                                                </button>
+                                            )
+                                        })}
+                                    </div>
+                                    <p className={`text-xs ${themeStyles.accent} mt-2`}>
+                                        Task will repeat on selected days each week
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
                         {/* Actions */}
                         <div className="flex gap-3 pt-4">
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
                             >
                                 {loading ? "Saving..." : task ? "Update Task" : "Create Task"}
                             </button>
