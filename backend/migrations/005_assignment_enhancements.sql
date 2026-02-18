@@ -54,6 +54,7 @@ WHERE submission_type IS NULL;
 -- ============================================================================
 
 -- Update existing view to include new fields
+DROP VIEW IF EXISTS question_sheets_with_stats;
 CREATE OR REPLACE VIEW question_sheets_with_stats AS
 SELECT 
     qs.id,
@@ -77,6 +78,8 @@ GROUP BY qs.id, qs.group_id, qs.creator_id, qs.title, qs.description,
          qs.source_file_path, qs.ai_confidence, qs.created_at, qs.updated_at;
 
 -- Create view for assignment replies with submission type
+DROP VIEW IF EXISTS assignment_replies_with_details;
+
 CREATE OR REPLACE VIEW assignment_replies_with_details AS
 SELECT 
     uqsa.id,

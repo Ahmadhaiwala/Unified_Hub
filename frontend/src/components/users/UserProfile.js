@@ -2,6 +2,7 @@ import { useAuth } from "../../context/AuthContext"
 import { useTheme } from "../../context/ThemeContext"
 import { useEffect, useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
+import CompactHeatmap from "../tasks/CompactHeatmap"
 
 export default function UserProfile() {
     const { userId } = useParams()
@@ -191,7 +192,7 @@ export default function UserProfile() {
                 </div>
 
                 {/* Additional Info Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     {/* Personal Info */}
                     <div className={`${themeStyles.cardBg} ${themeStyles.border} rounded-lg p-6 shadow-lg`}>
                         <h2 className="text-xl font-bold mb-4">Information</h2>
@@ -254,6 +255,9 @@ export default function UserProfile() {
                         </div>
                     </div>
                 </div>
+
+                {/* Productivity Heatmap */}
+                <CompactHeatmap userId={userId} />
             </div>
         </div>
     )

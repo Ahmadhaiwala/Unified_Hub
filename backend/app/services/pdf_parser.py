@@ -25,20 +25,32 @@ async def parse_pdf_to_text(file_content: bytes, file_name: str) -> Optional[str
         
         # Extract text from all pages
         text_content = []
-        for page_num in range(len(pdf_reader.pages)):
+        num_pages = len(pdf_reader.pages)
+        print(f"📄 PDF has {num_pages} pages")
+        
+        for page_num in range(num_pages):
             page = pdf_reader.pages[page_num]
             text = page.extract_text()
             if text:
                 text_content.append(text)
+                # print(f"  - Page {page_num+1}: {len(text)} chars")
+            else:
+                print(f"  ⚠️ Page {page_num+1}: No text extracted (possibly scanned/image)")
         
         # Combine all pages
         full_text = "\n\n".join(text_content)
+        total_chars = len(full_text)
         
         if not full_text.strip():
-            print(f"⚠️ No text extracted from PDF: {file_name}")
+            print(f"⚠️ No text extracted from PDF: {file_name} (Size: {len(file_content)} bytes)")
             return None
             
-        print(f"✅ Extracted {len(full_text)} characters from PDF: {file_name}")
+        print(f"✅ Extracted {total_chars} characters from PDF: {file_name}")
+        
+        # Warning for potential scanned PDF (large file, little text)
+        if total_chars < 50 and len(file_content) > 50000:
+            print(f"⚠️ WARNING: PDF might be scanned/image-based (Low text ratio)")
+             
         return full_text
         
     except Exception as e:

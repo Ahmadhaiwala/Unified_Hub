@@ -55,9 +55,9 @@ async def get_assignment_detail(assignment_id: str, user_id: str) -> Dict:
                 try:
                     profile_result = await asyncio.get_event_loop().run_in_executor(
                         None,
-                        lambda sid=student_id: supabase.table("user_profiles")
+                        lambda sid=student_id: supabase.table("profiles")
                         .select("username, full_name, avatar_url")
-                        .eq("user_id", sid)
+                        .eq("id", sid)
                         .execute()
                     )
                     if profile_result.data:

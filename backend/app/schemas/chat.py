@@ -35,3 +35,19 @@ class ConversationDetail(BaseModel):
     participant2_id: UUID
     created_at: datetime
     updated_at: datetime
+
+class MessageListResponse(BaseModel):
+    messages: List[Message]
+    total_count: int
+    limit: int
+    offset: int
+    has_more: bool
+
+class ConversationTitle(BaseModel):
+    conversation_id: UUID
+    title: str
+    type: str  # 'direct' or 'group'
+
+class MessageUpdateRequest(BaseModel):
+    content: str
+

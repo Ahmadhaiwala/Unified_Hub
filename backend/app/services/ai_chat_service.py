@@ -3,7 +3,7 @@ import os
 from typing import List, Dict
 from datetime import datetime
 from app.core.supabase import supabase
-from app.services.intent_detection_service import intent_detection_service
+
 
 OPENROUTER_API_KEY = os.getenv("OPEN_ROUTER_API_KEY")
 
@@ -13,7 +13,7 @@ You are an AI assistant inside a chat application.
 CORE RULES:
 -strictly follow the group conversation answer check if that conversation he said is correct or not and interpret and give the correct answer nothing should be said without group context
 - Give precise and direct answers.
-- Use minimal words.
+
 - Avoid long explanations unless user explicitly asks.
 - Focus on correctness over creativity.
 - Do not repeat the question.
@@ -21,7 +21,7 @@ CORE RULES:
 - Prefer bullet points over paragraphs when possible.
 
 TOKEN EFFICIENCY:
-- Keep responses under 120 words unless necessary.
+
 - Do not include examples unless requested.
 - No storytelling.
 
@@ -43,7 +43,7 @@ class AIChatService:
             return {
                 "response": "AI service not configured.",
                 "timestamp": datetime.now().isoformat(),
-                "error": True
+                "error": Tru
             }
 
         try:
@@ -119,37 +119,13 @@ class AIChatService:
             await self._store_message(user_id, message, ai_response, group_id)
             print(f"✅ Message stored successfully")
 
-            # Detect admin intents (reminders, etc.) if in group chat
-            suggested_action = None
-            if group_id:
-                try:
-                    is_admin = await self._check_if_admin(user_id, group_id)
-                    if is_admin:
-                        print(f"🤖 Checking for reminder intent...")
-                        intent = await intent_detection_service.detect_reminder_intent(message)
-                        
-                        if intent.detected and intent.confidence > 0.3:
-                            print(f"✅ Reminder intent detected! Confidence: {intent.confidence}")
-                            suggested_action = {
-                                "type": "create_reminder",
-                                "data": {
-                                    "title": intent.title,
-                                    "description": intent.description,
-                                    "due_date": intent.due_date,
-                                    "priority": intent.priority,
-                                    "confidence": intent.confidence
-                                }
-                            }
-                        else:
-                            print(f"ℹ️ No strong reminder intent (confidence: {intent.confidence})")
-                except Exception as e:
-                    print(f"⚠️ Intent detection error: {str(e)}")
-
+            # suggested_action removed as part of reminder cleanup
+            
             return {
                 "response": ai_response,
                 "timestamp": datetime.now().isoformat(),
                 "error": False,
-                "suggested_action": suggested_action
+                "suggested_action": None
             }
 
         except Exception as e:
@@ -158,6 +134,143 @@ class AIChatService:
                 "response": f"AI error: {str(e)}",
                 "timestamp": datetime.now().isoformat(),
                 "error": True
+            }
+
+    async def chat_stream(self, user_id: str, message: str, group_id: str = None):
+        """Stream AI responses in real-time using Server-Sent Events"""
+        if not self.api_key:
+            yield {
+                "content": "AI service not configured.",
+                "done": True,
+                "error": True,
+                "timestamp": datetime.now().isoformat()
+            }
+            return
+
+        try:
+            # Get conversation history filtered by group_id
+            history = await self._get_conversation_history(user_id, limit=10, group_id=group_id)
+            print(f"📜 [STREAM] Loaded {len(history)} history messages for group_id={group_id}")
+            
+            # Convert history into OpenAI/OpenRouter format
+            messages = [{"role": "system", "content": SYSTEM_RULES}]
+            
+            # Add group context if this is a group chat
+            if group_id:
+                print(f"🔍 [STREAM] Fetching group context for group_id={group_id}")
+                group_context = await self._get_group_context(group_id)
+                if group_context:
+                    context_msg = f"Context: This chat is in group '{group_context['name']}'. {group_context.get('description', '')}"
+                    messages.append({"role": "system", "content": context_msg})
+                    
+                    # Add recent group messages as context
+                    group_messages = await self._get_recent_group_messages(group_id, limit=15)
+                    if group_messages:
+                        context_text = "Recent group conversation (remember who said what):\n"
+                        for msg in group_messages[-10:]:
+                            context_text += f"{msg['sender_name']} said: \"{msg['content']}\"\n"
+                        messages.append({"role": "system", "content": context_text})
+                    
+                    # Add PDF/document attachments as context
+                    attachments = await self._get_group_attachments(group_id, limit=10)
+                    if attachments:
+                        attachment_context = "Available documents in this group:\n"
+                        for att in attachments:
+                            attachment_context += f"- {att['filename']} (uploaded by {att['uploader']})\n"
+                            if att.get('extracted_text'):
+                                attachment_context += f"  Content preview: {att['extracted_text'][:500]}...\n"
+                        messages.append({"role": "system", "content": attachment_context})
+            
+            # Add conversation history
+            for msg in reversed(history):
+                role = "user" if msg["sender"] == "user" else "assistant"
+                messages.append({"role": role, "content": msg["content"]})
+
+            # Add current user message
+            messages.append({"role": "user", "content": message})
+
+            print(f"🤖 [STREAM] Sending {len(messages)} messages to OpenRouter API with streaming enabled")
+
+            # Call OpenRouter API with streaming
+            response = requests.post(
+                self.api_url,
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": self.model_name,
+                    "messages": messages,
+                    "stream": True
+                },
+                stream=True
+            )
+
+            if response.status_code != 200:
+                error_msg = f"OpenRouter API error: {response.status_code} - {response.text}"
+                print(f"❌ [STREAM] {error_msg}")
+                yield {
+                    "content": f"AI error: {error_msg}",
+                    "done": True,
+                    "error": True,
+                    "timestamp": datetime.now().isoformat()
+                }
+                return
+
+            full_response = ""
+            
+            # Parse SSE stream
+            for line in response.iter_lines():
+                if line:
+                    line_str = line.decode('utf-8')
+                    
+                    if line_str.startswith('data: '):
+                        data_str = line_str[6:]  # Remove 'data: ' prefix
+                        
+                        if data_str == '[DONE]':
+                            print(f"✅ [STREAM] Stream completed, total length: {len(full_response)}")
+                            break
+                        
+                        try:
+                            import json
+                            chunk_data = json.loads(data_str)
+                            
+                            # Extract content from delta
+                            if 'choices' in chunk_data and len(chunk_data['choices']) > 0:
+                                delta = chunk_data['choices'][0].get('delta', {})
+                                content = delta.get('content', '')
+                                
+                                if content:
+                                    full_response += content
+                                    yield {
+                                        "content": content,
+                                        "done": False
+                                    }
+                        except json.JSONDecodeError as e:
+                            print(f"⚠️ [STREAM] Failed to parse chunk: {e}")
+                            continue
+
+            # Store complete message
+            print(f"💾 [STREAM] Storing complete message (group_id={group_id})")
+            await self._store_message(user_id, message, full_response, group_id)
+
+            # Send final done signal
+            yield {
+                "content": "",
+                "done": True,
+                "error": False,
+                "timestamp": datetime.now().isoformat()
+            }
+
+        except Exception as e:
+            print(f"❌ [STREAM] Error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            yield {
+                "content": f"AI error: {str(e)}",
+                "done": True,
+                "error": True,
+                "timestamp": datetime.now().isoformat()
             }
 
     async def _get_conversation_history(self, user_id: str, limit: int = 10, group_id: str = None) -> List[Dict]:

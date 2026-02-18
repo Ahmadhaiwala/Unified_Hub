@@ -5,18 +5,18 @@ const themes = {
   light: {
     name: 'Editorial Light',
     properties: {
-      bg: 'bg-[#e5e5e5] min-h-screen text-black',
-      secondbar: 'bg-[#d9d9d9] border-b-2 border-black',
-      cardBg: 'bg-white border-2 border-black',
+      bg: 'bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 min-h-screen text-black',
+      secondbar: 'bg-white/80 backdrop-blur-sm border-b-2 border-black',
+      cardBg: 'bg-white/90 backdrop-blur-sm border-2 border-black shadow-lg',
       text: 'text-black',
       accent: 'text-purple-600',
       border: 'border-black',
       sectionAccent: 'border-l-4 border-black pl-4',
 
-      section: 'bg-[#f5f5f5] border-2 border-black p-6',
+      section: 'bg-white/80 backdrop-blur-sm border-2 border-black p-6',
       heading: 'text-black font-extrabold tracking-tight',
 
-      cardSoft: 'bg-white border-2 border-black p-5',
+      cardSoft: 'bg-white/80 backdrop-blur-sm border-2 border-black p-5',
 
       button: `
         bg-white
@@ -50,18 +50,18 @@ const themes = {
   dark: {
     name: 'Editorial Dark',
     properties: {
-      bg: 'bg-black min-h-screen text-white',
-      secondbar: 'bg-neutral-900 border-b-2 border-white',
-      cardBg: 'bg-neutral-900 border-2 border-white',
+      bg: 'bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 min-h-screen text-white',
+      secondbar: 'bg-black/60 backdrop-blur-sm border-b-2 border-white',
+      cardBg: 'bg-black/60 backdrop-blur-sm border-2 border-white shadow-2xl',
       text: 'text-white',
       accent: 'text-pink-400',
       border: 'border-white',
       sectionAccent: 'border-l-4 border-white pl-4',
 
-      section: 'bg-neutral-900 border-2 border-white p-6',
+      section: 'bg-black/60 backdrop-blur-sm border-2 border-white p-6',
       heading: 'text-white font-extrabold tracking-tight',
 
-      cardSoft: 'bg-neutral-900 border-2 border-white p-5',
+      cardSoft: 'bg-black/60 backdrop-blur-sm border-2 border-white p-5',
 
       button: `
         bg-white

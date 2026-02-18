@@ -5,7 +5,11 @@ import { useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 
 const menu = [
-
+  {
+    label: "Home",
+    icon: "🏠",
+    path: "/",
+  },
   {
     label: "Friends",
     icon: "👤",
@@ -16,6 +20,12 @@ const menu = [
     icon: "💬",
     path: "/chat",
   },
+  {
+    label: "Tasks",
+    icon: "📋",
+    path: "/tasks",
+  },
+  
   {
     label: "Discover Users",
     icon: "🔍",
@@ -79,7 +89,7 @@ export default function Sidebar({ onNavigate }) {
     ${open ? "translate-x-0" : "-translate-x-full"}
     lg:translate-x-0
     border-r-2
-    ${themeStyles.cardBg} ${themeStyles.text} ${themeStyles.border}
+    ${themeStyles.bg} ${themeStyles.text} ${themeStyles.border}
   `}
       >
         {/* HEADER */}

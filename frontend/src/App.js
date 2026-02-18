@@ -13,6 +13,8 @@ import Userls from "./components/users/Userls"
 import UserProfile from "./components/users/UserProfile"
 import AssignmentsPage from "./pages/Assignments"
 import AssignmentDetailPage from "./pages/AssignmentDetail"
+import TaskList from "./components/tasks/TaskList"
+import ProductivityHeatmap from "./components/tasks/ProductivityHeatmap"
 
 export default function App() {
   const { loading } = useAuth()
@@ -33,11 +35,14 @@ export default function App() {
         >
 
 
+          <Route index element={<Home />} />
           <Route path="users" element={<Userls />} />
           <Route path="users/:userId" element={<UserProfile />} />
           <Route path="chat" element={<Chat />} />
           <Route path="profile" element={<Profile />} />
           <Route path="friends" element={<ViewFriend />} />
+          <Route path="tasks" element={<TaskList />} />
+          <Route path="tasks/heatmap" element={<ProductivityHeatmap />} />
           <Route path="assignments/:groupId" element={<AssignmentsPage />} />
           <Route path="assignment-detail/:assignmentId" element={<AssignmentDetailPage />} />
         </Route>

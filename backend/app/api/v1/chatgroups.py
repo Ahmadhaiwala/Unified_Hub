@@ -44,19 +44,19 @@ async def get_group_details(
     """
     return await ChatGroupService.get_group_details(group_id, current_user.id)
 
-@router.put("/chatgroups/{group_id}", response_model=ChatGroupOut)
+@router.put("/chatgroups/{group_id}")
 async def update_group(
     group_id: str,
     update_data: ChatGroupUpdate,
     current_user=Depends(get_current_user)
 ):
     """
-    Update chat group name/description (admin only)
+    Update chat group name/description/avatar (admin only)
     """
-    return await ChatGroupService.update_group(
+    return await ChatGroupService.update_group_details(
         group_id, 
         current_user.id, 
-        update_data
+        update_data.dict(exclude_unset=True)
     )
 
 @router.delete("/chatgroups/{group_id}")
@@ -194,12 +194,11 @@ async def delete_message(
     """
     Delete a message (sender only)
     """
-    await ChatGroupService.delete_message(
-        group_id, 
-        message_id, 
-        current_user.id
+    return await ChatGroupService.delete_group_message(
+        message_id,
+        current_user.id,
+        group_id
     )
-    return {"message": "Message deleted successfully"}
 
 
 

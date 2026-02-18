@@ -6,7 +6,7 @@ Comprehensive service for managing assignments, PDF uploads, and student replies
 from typing import List, Optional, Dict
 from fastapi import HTTPException, status, UploadFile
 from app.core.supabase import supabase
-from app.services.assignment_detector import detect_and_store_assignment, extract_assignment_fields
+from app.services.assignment_detector import detect_and_store_assignment
 from app.services.pdf_parser import parse_pdf_to_text, validate_pdf_file
 from datetime import datetime
 import asyncio
@@ -59,8 +59,8 @@ class AssignmentService:
             
             if not assignment:
                 raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Failed to create assignment from PDF"
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Could not detect assignment content in PDF. Please ensure the file contains clear assignment text."
                 )
             
             return assignment
@@ -206,9 +206,9 @@ class AssignmentService:
                     try:
                         profile_result = await asyncio.get_event_loop().run_in_executor(
                             None,
-                            lambda sid=student_id: supabase.table("user_profiles")
+                            lambda sid=student_id: supabase.table("profiles")
                             .select("username, full_name, avatar_url")
-                            .eq("user_id", sid)
+                            .eq("id", sid)
                             .execute()
                         )
                         if profile_result.data:

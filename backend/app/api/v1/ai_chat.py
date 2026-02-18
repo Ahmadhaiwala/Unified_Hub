@@ -56,6 +56,48 @@ async def chat_with_ai(
             detail=f"Failed to process AI chat: {str(e)}"
         )
 
+@router.post("/chat/stream")
+async def stream_chat_with_ai(
+    request: ChatRequest,
+    current_user = Depends(get_current_user)
+):
+    """
+    Stream AI responses in real-time using Server-Sent Events
+    """
+    import json
+    from fastapi.responses import StreamingResponse
+    
+    async def event_generator():
+        try:
+            user_id = current_user.id
+            
+            async for chunk in ai_chat_service.chat_stream(
+                user_id=user_id,
+                message=request.message,
+                group_id=request.group_id
+            ):
+                # Format as Server-Sent Event
+                yield f"data: {json.dumps(chunk)}\n\n"
+                
+        except Exception as e:
+            print(f"Stream error: {str(e)}")
+            error_chunk = {
+                "content": f"Stream error: {str(e)}",
+                "done": True,
+                "error": True
+            }
+            yield f"data: {json.dumps(error_chunk)}\n\n"
+    
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
 @router.get("/chat/history")
 async def get_chat_history(
     limit: int = 20,
