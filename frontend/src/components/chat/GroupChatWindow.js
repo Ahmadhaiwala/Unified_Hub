@@ -697,7 +697,7 @@ export default function GroupChatWindow({ groupId, groupName, onMessageSent, onG
                     
                     {messages.map((msg) => {
                         const isOwnMessage = msg.sender_id === user.user.id
-                        const sender = members.find((m) => m.user_id === msg.sender_id)
+                        const senderName = msg.sender_username || "Unknown"
                         const hasAttachment = msg.content?.startsWith("📎")
 
                         return (
@@ -713,7 +713,7 @@ export default function GroupChatWindow({ groupId, groupName, onMessageSent, onG
                                 >
                                     {!isOwnMessage && (
                                         <p className={`text-xs font-semibold mb-1 opacity-70 ${hasAttachment ? "px-4 pt-2" : ""}`}>
-                                            {sender?.username || "Unknown"}
+                                            {senderName}
                                         </p>
                                     )}
                                     
@@ -923,6 +923,7 @@ export default function GroupChatWindow({ groupId, groupName, onMessageSent, onG
             {showMembersModal && (
                 <GroupMembersModal
                     groupId={groupId}
+                    groupName={displayName}
                     onClose={() => setShowMembersModal(false)}
                     onGroupDeleted={onGroupDeleted}
                     onGroupUpdated={onGroupUpdated}

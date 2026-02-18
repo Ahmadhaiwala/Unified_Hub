@@ -1,43 +1,41 @@
 import { useState } from "react"
-import { useTheme } from "../context/ThemeContext"
 import { useAuth } from "../context/AuthContext"
 import { useEffect } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
+import { Home, Users, MessageCircle, CheckSquare, Search, LogOut, User } from "lucide-react"
 
 const menu = [
   {
     label: "Home",
-    icon: "🏠",
+    icon: Home,
     path: "/",
   },
   {
     label: "Friends",
-    icon: "👤",
+    icon: Users,
     path: "/friends",
   },
   {
     label: "Chat",
-    icon: "💬",
+    icon: MessageCircle,
     path: "/chat",
   },
   {
     label: "Tasks",
-    icon: "📋",
+    icon: CheckSquare,
     path: "/tasks",
   },
   
   {
     label: "Discover Users",
-    icon: "🔍",
+    icon: Search,
     path: "/users",
   },
 ]
 
 export default function Sidebar({ onNavigate }) {
   const { logout } = useAuth()
-  const { themeStyles } = useTheme()
   const [open, setOpen] = useState(false)
-  const [active, setActive] = useState(null)
   const { user } = useAuth()
   const [profile, setProfile] = useState(null)
   const [loadingProfile, setLoadingProfile] = useState(false)
@@ -102,11 +100,13 @@ export default function Sidebar({ onNavigate }) {
 
         {/* MENU */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {menu.map((item, idx) => (
-            <button
-              key={idx}
-              onClick={() => handleNavigation(item.path)}
-              className={`
+          {menu.map((item, idx) => {
+            const IconComponent = item.icon
+            return (
+              <button
+                key={idx}
+                onClick={() => handleNavigation(item.path)}
+                className={`
           w-full flex items-center gap-3
           px-4 py-3
           rounded-lg
@@ -116,11 +116,12 @@ export default function Sidebar({ onNavigate }) {
           text-white
           transition-all duration-200
         `}
-            >
-              <span className="text-xl">{item.icon}</span>
-              {item.label}
-            </button>
-          ))}
+              >
+                <IconComponent size={20} />
+                {item.label}
+              </button>
+            )
+          })}
         </nav>
 
         {/* FOOTER PROFILE */}
@@ -137,7 +138,7 @@ export default function Sidebar({ onNavigate }) {
               />
             ) : (
               <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">
-                {profile?.username?.[0]?.toUpperCase() || "?"}
+                <User size={20} />
               </div>
             )}
             <div className="text-left flex-1">
@@ -148,8 +149,9 @@ export default function Sidebar({ onNavigate }) {
 
           <button
             onClick={logout}
-            className="w-full px-4 py-2 rounded-lg font-medium bg-red-600 hover:bg-red-700 text-white transition-all"
+            className="w-full px-4 py-2 rounded-lg font-medium bg-red-600 hover:bg-red-700 text-white transition-all flex items-center justify-center gap-2"
           >
+            <LogOut size={18} />
             Logout
           </button>
         </div>

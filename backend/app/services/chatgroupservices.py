@@ -579,9 +579,7 @@ class ChatGroupService:
             response = await run_in_threadpool(
                 lambda: supabase
                     .table("group_messeges")
-                    .select(
-                        "id, group_id, sender_id, content, created_at, updated_at"
-                    )
+                    .select("id, group_id, sender_id, content, created_at, updated_at")
                     .eq("group_id", group_id)
                     .order("created_at", desc=True)
                     .limit(limit)
@@ -590,6 +588,22 @@ class ChatGroupService:
             )
 
             messages = response.data or []
+            
+            # Fetch sender info for each message
+            for msg in messages:
+                sender_response = await run_in_threadpool(
+                    lambda m=msg: supabase
+                        .table("profiles")
+                        .select("username, email")
+                        .eq("id", m["sender_id"])
+                        .execute()
+                )
+                
+                if sender_response.data and len(sender_response.data) > 0:
+                    sender = sender_response.data[0]
+                    msg["sender_username"] = sender.get("username") or sender.get("email")
+                else:
+                    msg["sender_username"] = "Unknown"
             
             # Fetch attachments for all messages concurrently
             async def fetch_attachment(msg):
