@@ -218,7 +218,7 @@ export default function GroupAIChatPanel({ groupId, groupName, isExpanded, onTog
                     {/* Header */}
                     <div className={`px-4 py-3 ${themeStyles.border} border-b flex items-center justify-between`}>
                         <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
                                 <span className="text-white">🤖</span>
                             </div>
                             <div>
@@ -243,7 +243,7 @@ export default function GroupAIChatPanel({ groupId, groupName, isExpanded, onTog
                     <div className="flex-1 overflow-y-auto p-3 space-y-3">
                         {messages.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-full text-center px-4">
-                                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mb-3">
+                                <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center mb-3">
                                     <span className="text-2xl">🤖</span>
                                 </div>
                                 <p className={`text-sm ${themeStyles.accent}`}>

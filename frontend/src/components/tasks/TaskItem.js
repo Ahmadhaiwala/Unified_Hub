@@ -81,7 +81,7 @@ export default function TaskItem({ task, onEdit, onDelete, onUpdate }) {
                     className={`mt-1 w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${
                         task.status === "completed"
                             ? "bg-green-500 border-green-500"
-                            : "border-gray-400 hover:border-purple-500"
+                            : "border-gray-400 hover:border-blue-500"
                     }`}
                 >
                     {task.status === "completed" && (
@@ -115,7 +115,7 @@ export default function TaskItem({ task, onEdit, onDelete, onUpdate }) {
                         <span className={`px-2 py-1 text-xs rounded-full ${
                             task.status === "completed" ? "bg-green-100 text-green-800" :
                             task.status === "in_progress" ? "bg-blue-100 text-blue-800" :
-                            task.status === "archived" ? "bg-purple-100 text-purple-800" :
+                            task.status === "archived" ? "bg-gray-100 text-gray-800" :
                             "bg-gray-100 text-gray-800"
                         }`}>
                             {statusLabels[task.status]}
@@ -123,7 +123,7 @@ export default function TaskItem({ task, onEdit, onDelete, onUpdate }) {
 
                         {/* Category */}
                         {task.category && (
-                            <span className={`px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800`}>
+                            <span className={`px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800`}>
                                 📁 {task.category}
                             </span>
                         )}

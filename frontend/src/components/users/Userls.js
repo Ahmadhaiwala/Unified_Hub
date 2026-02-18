@@ -117,7 +117,7 @@ export default function Userls() {
                   placeholder="🔍 Search by username, email, or bio..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className={`w-full px-4 py-3 border-2 ${themeStyles.border} ${themeStyles.cardBg} ${themeStyles.text} font-medium focus:outline-none focus:ring-2 focus:ring-purple-500`}
+                  className={`w-full px-4 py-3 border-2 ${themeStyles.border} ${themeStyles.cardBg} ${themeStyles.text} font-medium focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 />
                 {searchQuery && (
                   <button

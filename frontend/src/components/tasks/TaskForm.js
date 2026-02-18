@@ -265,7 +265,7 @@ export default function TaskForm({ task, onClose, onSuccess }) {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
                             >
                                 {loading ? "Saving..." : task ? "Update Task" : "Create Task"}
                             </button>

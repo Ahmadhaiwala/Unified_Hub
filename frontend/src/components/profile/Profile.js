@@ -225,8 +225,8 @@ export default function Profile() {
       <div className={`flex items-center justify-center min-h-screen ${themeStyles.bg}`}>
         <div className="text-center">
           <div className="relative w-24 h-24 mx-auto mb-4">
-            <div className="absolute inset-0 border-4 border-purple-200 dark:border-purple-900 rounded-full"></div>
-            <div className="absolute inset-0 border-4 border-purple-600 rounded-full border-t-transparent animate-spin"></div>
+            <div className="absolute inset-0 border-4 border-blue-200 dark:border-blue-900 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
           </div>
           <p className={`text-lg font-bold ${themeStyles.text}`}>Loading your profile...</p>
         </div>
@@ -255,7 +255,7 @@ export default function Profile() {
 
         {/* Success Message with Animation */}
         {updateSuccess && (
-          <div className="mb-6 p-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold flex items-center gap-3 animate-fade-in shadow-lg">
+          <div className="mb-6 p-4 bg-green-600 text-white rounded-xl font-bold flex items-center gap-3 animate-fade-in shadow-lg">
             <span className="text-2xl animate-bounce">✓</span>
             <span>Profile updated successfully!</span>
           </div>
@@ -263,24 +263,23 @@ export default function Profile() {
 
         {/* Error Message */}
         {updateError && (
-          <div className="mb-6 p-4 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-xl font-bold flex items-center gap-3 animate-fade-in shadow-lg">
+          <div className="mb-6 p-4 bg-red-600 text-white rounded-xl font-bold flex items-center gap-3 animate-fade-in shadow-lg">
             <span className="text-2xl">✗</span>
             <span>Error: {updateError}</span>
           </div>
         )}
 
         {/* Profile Header Card with Animation */}
-        <div className={`${themeStyles.cardBg} border-4 ${themeStyles.border} rounded-2xl p-8 mb-8 shadow-2xl animate-slide-up hover:shadow-purple-500/20 transition-all duration-300`}>
+        <div className={`${themeStyles.cardBg} border-4 ${themeStyles.border} rounded-2xl p-8 mb-8 shadow-2xl animate-slide-up transition-all duration-300`}>
           <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
 
             {/* Avatar Section with Cool Hover Effect */}
             <div className="relative group">
-              <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-300 animate-pulse"></div>
               <div className="relative">
                 <img
                   src={photoPreview || profile?.avatar_url || `https://ui-avatars.com/api/?name=${profile?.username || 'User'}&size=200&background=random`}
                   alt="avatar"
-                  className="w-40 h-40 rounded-full border-4 border-white dark:border-gray-900 object-cover shadow-2xl transform group-hover:scale-105 transition-transform duration-300"
+                  className="w-40 h-40 rounded-full border-4 border-gray-300 dark:border-gray-700 object-cover shadow-2xl transform group-hover:scale-105 transition-transform duration-300"
                 />
                 <button
                   onClick={handlePhotoClick}
@@ -308,7 +307,7 @@ export default function Profile() {
 
             {/* Profile Info */}
             <div className="flex-1 text-center md:text-left">
-              <h1 className="text-5xl font-black mb-2 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent animate-fade-in">
+              <h1 className={`text-5xl font-black mb-2 ${themeStyles.text} animate-fade-in`}>
                 {profile?.username || "User"}
               </h1>
               <p className="text-xl opacity-70 mb-1">{user?.email}</p>
@@ -323,7 +322,7 @@ export default function Profile() {
                     value={formData.bio}
                     onChange={handleInputChange}
                     placeholder="Tell us about yourself..."
-                    className={`w-full px-4 py-3 border-2 ${themeStyles.border} ${themeStyles.cardBg} rounded-xl font-medium focus:outline-none focus:ring-4 focus:ring-purple-500/50 transition-all`}
+                    className={`w-full px-4 py-3 border-2 ${themeStyles.border} ${themeStyles.cardBg} rounded-xl font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/50 transition-all`}
                     rows="3"
                   />
                 </div>
@@ -335,7 +334,7 @@ export default function Profile() {
               {!isEditing ? (
                 <button
                   onClick={handleEditClick}
-                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl hover:scale-105 hover:shadow-lg transition-all duration-300 flex items-center gap-2"
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl hover:scale-105 hover:shadow-lg transition-all duration-300 flex items-center gap-2"
                 >
                   <span>✏️</span>
                   <span>Edit Profile</span>
@@ -345,7 +344,7 @@ export default function Profile() {
                   <button
                     onClick={handleUpdateProfile}
                     disabled={updating}
-                    className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold rounded-xl hover:scale-105 hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl hover:scale-105 hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   >
                     <span>{updating ? "⏳" : "💾"}</span>
                     <span>{updating ? "Saving..." : "Save Changes"}</span>
@@ -396,7 +395,7 @@ export default function Profile() {
             <div className="flex items-center justify-between mb-3">
               <span className="text-4xl group-hover:scale-125 transition-transform duration-300">📅</span>
               <div className="text-right">
-                <p className="text-3xl font-black text-purple-600 dark:text-purple-400">
+                <p className="text-3xl font-black text-blue-600 dark:text-blue-400">
                   {accountAge}
                 </p>
                 <p className="text-xs font-bold uppercase opacity-70">Days</p>
@@ -473,7 +472,7 @@ export default function Profile() {
                   name="username"
                   value={formData.username}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border-2 ${themeStyles.border} ${themeStyles.cardBg} rounded-xl font-medium focus:outline-none focus:ring-4 focus:ring-purple-500/50 transition-all`}
+                  className={`w-full px-4 py-3 border-2 ${themeStyles.border} ${themeStyles.cardBg} rounded-xl font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/50 transition-all`}
                   placeholder="Enter username"
                 />
               </div>
@@ -484,7 +483,7 @@ export default function Profile() {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border-2 ${themeStyles.border} ${themeStyles.cardBg} rounded-xl font-medium focus:outline-none focus:ring-4 focus:ring-purple-500/50 transition-all`}
+                  className={`w-full px-4 py-3 border-2 ${themeStyles.border} ${themeStyles.cardBg} rounded-xl font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/50 transition-all`}
                   placeholder="Enter email"
                 />
               </div>
@@ -494,7 +493,7 @@ export default function Profile() {
                   name="bio"
                   value={formData.bio}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 border-2 ${themeStyles.border} ${themeStyles.cardBg} rounded-xl font-medium focus:outline-none focus:ring-4 focus:ring-purple-500/50 transition-all`}
+                  className={`w-full px-4 py-3 border-2 ${themeStyles.border} ${themeStyles.cardBg} rounded-xl font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/50 transition-all`}
                   placeholder="Tell us about yourself..."
                   rows="4"
                 />

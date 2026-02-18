@@ -173,8 +173,8 @@ export default function CompactHeatmap({ userId }) {
                         </p>
                         <p className="text-xs font-bold uppercase opacity-70">Current Streak</p>
                     </div>
-                    <div className="text-center p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                        <p className="text-2xl font-black text-purple-600 dark:text-purple-400">
+                    <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                        <p className="text-2xl font-black text-blue-600 dark:text-blue-400">
                             {heatmapData.longest_streak}
                         </p>
                         <p className="text-xs font-bold uppercase opacity-70">Best Streak</p>

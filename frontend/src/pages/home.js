@@ -66,7 +66,7 @@ export default function Home() {
   if (loading) return <div className={`min-h-screen ${themeStyles.bg} flex items-center justify-center`}><p>Loading...</p></div>
 
   const quickActions = [
-    { label: "Discover Users", icon: "🔍", path: "/users", color: "bg-purple-500" },
+    { label: "Discover Users", icon: "🔍", path: "/users", color: "bg-blue-500" },
     { label: "My Friends", icon: "👥", path: "/friends", color: "bg-blue-500" },
     { label: "Start Chat", icon: "💬", path: "/chat", color: "bg-green-500" },
     { label: "My Profile", icon: "👤", path: "/profile", color: "bg-orange-500" },
@@ -139,7 +139,7 @@ export default function Home() {
                   {pendingRequests.slice(0, 3).map((request) => (
                     <div key={request.id} className={`border-2 ${themeStyles.border} p-4 flex items-center justify-between`}>
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-xl">
+                        <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xl">
                           {request.sender?.username?.[0]?.toUpperCase() || '?'}
                         </div>
                         <div>
@@ -195,7 +195,7 @@ export default function Home() {
                   <p className="mb-4">You're not in any groups yet</p>
                   <button
                     onClick={() => navigate('/chat')}
-                    className={`px-6 py-3 border-2 ${themeStyles.border} font-bold hover:bg-purple-600 hover:text-white transition-all`}
+                    className={`px-6 py-3 border-2 ${themeStyles.border} font-bold hover:bg-blue-600 hover:text-white transition-all`}
                   >
                     Create Your First Group
                   </button>

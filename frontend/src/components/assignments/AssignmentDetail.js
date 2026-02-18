@@ -177,7 +177,7 @@ const AssignmentDetail = ({ assignmentId }) => {
                             <div className="border-b pb-4 mb-4">
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1">
-                                        <span className="inline-block px-3 py-1 bg-purple-100 text-purple-800 text-sm font-bold rounded-full mb-2">
+                                        <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-sm font-bold rounded-full mb-2">
                                             Question {question.question_order}
                                         </span>
                                         <h3 className="text-lg font-semibold mt-2">{question.question_text}</h3>

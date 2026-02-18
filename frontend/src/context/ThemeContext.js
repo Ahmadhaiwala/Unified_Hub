@@ -3,91 +3,115 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const themes = {
 
   light: {
-    name: 'Editorial Light',
+    name: 'Modern Light',
     properties: {
-      bg: 'bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 min-h-screen text-black',
-      secondbar: 'bg-white/80 backdrop-blur-sm border-b-2 border-black',
-      cardBg: 'bg-white/90 backdrop-blur-sm border-2 border-black shadow-lg',
-      text: 'text-black',
-      accent: 'text-purple-600',
-      border: 'border-black',
-      sectionAccent: 'border-l-4 border-black pl-4',
+      bg: 'bg-white min-h-screen text-gray-900',
+      secondbar: 'bg-gray-50 border-b border-gray-200',
+      cardBg: 'bg-white shadow-lg rounded-xl border border-gray-200',
+      text: 'text-gray-900',
+      accent: 'text-gray-600',
+      border: 'border-gray-200',
+      sectionAccent: 'border-l-4 border-blue-500 pl-4',
 
-      section: 'bg-white/80 backdrop-blur-sm border-2 border-black p-6',
-      heading: 'text-black font-extrabold tracking-tight',
+      section: 'bg-white rounded-xl p-6 shadow-md border border-gray-200',
+      heading: 'text-gray-900 font-bold tracking-tight',
 
-      cardSoft: 'bg-white/80 backdrop-blur-sm border-2 border-black p-5',
+      cardSoft: 'bg-gray-50 rounded-xl p-5 shadow-sm border border-gray-200',
 
       button: `
-        bg-white
-        border-2 border-black
-        px-5 py-2
-        font-bold
-        uppercase
-        tracking-wide
-        hover:bg-black hover:text-white
-        transition
+        bg-blue-600
+        text-white
+        px-6 py-2.5
+        rounded-lg
+        font-semibold
+        shadow-md
+        hover:bg-blue-700
+        hover:shadow-lg
+        active:scale-95
+        transition-all
+        duration-200
       `,
 
       input: `
         bg-white
-        border-2 border-black
-        px-4 py-2
-        text-black
+        border border-gray-300
+        rounded-lg
+        px-4 py-2.5
+        text-gray-900
+        placeholder-gray-400
         focus:outline-none
+        focus:ring-2
+        focus:ring-blue-500
+        focus:border-transparent
+        transition-all
       `,
 
       themeButton: `
-        bg-purple-400
-        border-2 border-black
-        text-black
-        px-3 py-1
-        font-bold
+        bg-gray-900
+        text-white
+        px-4 py-2
+        rounded-lg
+        font-semibold
+        shadow-md
+        hover:bg-gray-800
+        transition-all
       `,
     },
   },
 
   dark: {
-    name: 'Editorial Dark',
+    name: 'Modern Dark',
     properties: {
-      bg: 'bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 min-h-screen text-white',
-      secondbar: 'bg-black/60 backdrop-blur-sm border-b-2 border-white',
-      cardBg: 'bg-black/60 backdrop-blur-sm border-2 border-white shadow-2xl',
+      bg: 'bg-gray-950 min-h-screen text-white',
+      secondbar: 'bg-gray-900 border-b border-gray-800',
+      cardBg: 'bg-gray-900 shadow-2xl rounded-xl border border-gray-800',
       text: 'text-white',
-      accent: 'text-pink-400',
-      border: 'border-white',
-      sectionAccent: 'border-l-4 border-white pl-4',
+      accent: 'text-gray-400',
+      border: 'border-gray-800',
+      sectionAccent: 'border-l-4 border-blue-500 pl-4',
 
-      section: 'bg-black/60 backdrop-blur-sm border-2 border-white p-6',
-      heading: 'text-white font-extrabold tracking-tight',
+      section: 'bg-gray-900 rounded-xl p-6 shadow-xl border border-gray-800',
+      heading: 'text-white font-bold tracking-tight',
 
-      cardSoft: 'bg-black/60 backdrop-blur-sm border-2 border-white p-5',
+      cardSoft: 'bg-gray-800 rounded-xl p-5 shadow-lg border border-gray-700',
 
       button: `
-        bg-white
-        text-black
-        border-2 border-white
-        px-5 py-2
-        font-bold
-        uppercase
-        hover:bg-pink-500 hover:text-white
-        transition
+        bg-blue-600
+        text-white
+        px-6 py-2.5
+        rounded-lg
+        font-semibold
+        shadow-lg
+        hover:bg-blue-700
+        hover:shadow-xl
+        active:scale-95
+        transition-all
+        duration-200
       `,
 
       input: `
-        bg-neutral-900
-        border-2 border-white
-        px-4 py-2
+        bg-gray-800
+        border border-gray-700
+        rounded-lg
+        px-4 py-2.5
         text-white
+        placeholder-gray-500
         focus:outline-none
+        focus:ring-2
+        focus:ring-blue-500
+        focus:border-transparent
+        transition-all
       `,
 
       themeButton: `
-        bg-pink-500
-        border-2 border-white
+        bg-gray-700
         text-white
-        px-3 py-1
-        font-bold
+        px-4 py-2
+        rounded-lg
+        font-semibold
+        shadow-md
+        hover:bg-gray-600
+        transition-all
       `,
     },
   },
@@ -96,7 +120,6 @@ const themes = {
 
 const interactions = {
   buttonBase: 'inline-flex items-center justify-center gap-2 px-6 py-3 font-semibold transition-all duration-300 active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none',
-  glowSweep: 'relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent before:translate-x-[-200%] hover:before:translate-x-[200%] before:transition-transform before:duration-700',
 };
 
 const ThemeContext = createContext();
@@ -117,7 +140,7 @@ export const ThemeProvider = ({ children }) => {
   // Merge button interactions automatically
   const themeStyles = {
     ...baseProps,
-    button: `${interactions.buttonBase} ${interactions.glowSweep} ${baseProps.button}`,
+    button: `${interactions.buttonBase} ${baseProps.button}`,
   };
 
   return (

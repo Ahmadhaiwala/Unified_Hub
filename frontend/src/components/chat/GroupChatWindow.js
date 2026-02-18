@@ -616,10 +616,10 @@ export default function GroupChatWindow({ groupId, groupName, onMessageSent, onG
                                 <img 
                                     src={groupAvatar} 
                                     alt={displayName}
-                                    className="w-12 h-12 rounded-full object-cover border-2 border-purple-500"
+                                    className="w-12 h-12 rounded-full object-cover border-2 border-blue-500"
                                 />
                             ) : (
-                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center border-2 border-purple-500">
+                                <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center border-2 border-blue-500">
                                     <span className="text-white text-xl font-bold">
                                         {displayName?.charAt(0).toUpperCase()}
                                     </span>
@@ -643,7 +643,7 @@ export default function GroupChatWindow({ groupId, groupName, onMessageSent, onG
                             {isAdmin && (
                                 <button
                                     onClick={openEditGroupModal}
-                                    className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm transition-colors"
+                                    className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"
                                     title="Edit group"
                                 >
                                     ⚙️ Edit
@@ -659,7 +659,7 @@ export default function GroupChatWindow({ groupId, groupName, onMessageSent, onG
                             <button
                                 onClick={() => setShowAIChat(!showAIChat)}
                                 className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${showAIChat
-                                    ? "bg-purple-600 text-white"
+                                    ? "bg-blue-600 text-white"
                                     : `${themeStyles.button}`
                                     }`}
                                 title="Toggle AI Assistant"
@@ -898,7 +898,7 @@ export default function GroupChatWindow({ groupId, groupName, onMessageSent, onG
                             <div className="flex gap-3 mt-6">
                                 <button
                                     onClick={handleUpdateGroup}
-                                    className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+                                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                                 >
                                     Save Changes
                                 </button>
