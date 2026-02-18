@@ -136,7 +136,7 @@ class ChatGroupService:
                 lambda: supabase
                     .table("chat_groups")
                     .select(
-                        "id, name, description, created_at"
+                        "id, name, description, avatar_url, created_at, updated_at"
                     )
                     .eq("id", group_id)
                     .execute()
@@ -144,12 +144,16 @@ class ChatGroupService:
 
             print("Database response:", response)
 
+            if not response.data:
+                raise HTTPException(status_code=404, detail="Group not found")
+
             group = response.data[0]
 
-            return {
-                "group": group
-            }
+            # Return the group data directly (not wrapped in "group" key)
+            return group
 
+        except HTTPException:
+            raise
         except Exception as e:
             print("ERROR:", str(e))
             raise HTTPException(status_code=500, detail=str(e))
@@ -543,7 +547,7 @@ class ChatGroupService:
             print("ERROR:", str(e))
             raise HTTPException(status_code=500, detail=str(e))
     @staticmethod
-    async def get_group_messages(group_id, user_id, limit=50, offset=0):
+    async def get_group_messages(group_id, user_id, limit=20, offset=0):
         try:
             # Verify user is a member of the group
             member_check = await run_in_threadpool(
@@ -561,6 +565,16 @@ class ChatGroupService:
                     detail="You are not a member of this group"
                 )
             
+            # Get total count
+            count_response = await run_in_threadpool(
+                lambda: supabase
+                    .table("group_messeges")
+                    .select("id", count="exact")
+                    .eq("group_id", group_id)
+                    .execute()
+            )
+            total_count = count_response.count if count_response.count else 0
+            
             # Get messages
             response = await run_in_threadpool(
                 lambda: supabase
@@ -575,12 +589,10 @@ class ChatGroupService:
                     .execute()
             )
 
-            print("Database response:", response)
-
             messages = response.data or []
             
-            # For each message, fetch attachment if it exists
-            for msg in messages:
+            # Fetch attachments for all messages concurrently
+            async def fetch_attachment(msg):
                 attachment_response = await run_in_threadpool(
                     lambda m=msg: supabase
                         .table("group_attachments")
@@ -589,20 +601,16 @@ class ChatGroupService:
                         .execute()
                 )
                 
-                print(f"Checking attachments for message {msg['id']}: {len(attachment_response.data) if attachment_response.data else 0} found")
-                
                 if attachment_response.data and len(attachment_response.data) > 0:
                     attachment = attachment_response.data[0]
 
-    # 🔥 Generate file URL
+                    # Generate file URL
                     bucket_name = "message"
                     file_path = attachment.get("file_path")
 
                     if file_path:
                         public_url = supabase.storage.from_(bucket_name).get_public_url(file_path)
                         attachment["file_url"] = public_url
-                        print("Generated file URL:", public_url)
-
 
                     # Get uploader username
                     uploader_response = await run_in_threadpool(
@@ -617,12 +625,22 @@ class ChatGroupService:
                         attachment["uploader_username"] = uploader_response.data[0].get("username")
 
                     msg["attachment"] = attachment
-                    print(f"Attachment added to message {msg['id']}: {attachment.get('file_name')}")
-
+                
+                return msg
+            
+            # Process all messages concurrently
+            messages = await asyncio.gather(*[fetch_attachment(msg) for msg in messages])
+            
+            # Reverse to show oldest first
+            messages.reverse()
 
             return {
                 "count": len(messages),
-                "messages": messages
+                "messages": messages,
+                "total_count": total_count,
+                "limit": limit,
+                "offset": offset,
+                "has_more": (offset + len(messages)) < total_count
             }
 
         except HTTPException:
@@ -680,7 +698,7 @@ class ChatGroupService:
             groups_response = await run_in_threadpool(
                 lambda: supabase
                     .table("chat_groups")
-                    .select("id, name, description, created_at, updated_at")
+                    .select("id, name, description, avatar_url, created_at, updated_at")
                     .in_("id", group_ids)
                     .execute()
             )
@@ -795,6 +813,100 @@ class ChatGroupService:
         except Exception as e:
             print(f"Upload error: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
+    
+    @staticmethod
+    async def delete_group_message(message_id: str, user_id: str, group_id: str) -> dict:
+        """Delete a group message (only if user is the sender)"""
+        try:
+            # Verify user is the sender and message belongs to group
+            message = await run_in_threadpool(
+                lambda: supabase.table("group_messeges")
+                .select("*")
+                .eq("id", message_id)
+                .eq("sender_id", user_id)
+                .eq("group_id", group_id)
+                .execute()
+            )
+            
+            if not message.data:
+                raise HTTPException(403, "Not authorized to delete this message")
+            
+            # Delete the message
+            await run_in_threadpool(
+                lambda: supabase.table("group_messeges")
+                .delete()
+                .eq("id", message_id)
+                .execute()
+            )
+            
+            return {
+                "success": True,
+                "message": "Message deleted successfully",
+                "message_id": message_id,
+                "group_id": group_id
+            }
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f"Error deleting group message: {str(e)}")
+            raise HTTPException(500, f"Failed to delete group message: {str(e)}")
+    
+    @staticmethod
+    async def update_group_details(group_id: str, user_id: str, updates: dict) -> dict:
+        """Update group details (only if user is admin/creator)"""
+        try:
+            # Verify user is the creator (admin)
+            group = await run_in_threadpool(
+                lambda: supabase.table("chat_groups")
+                .select("*")
+                .eq("id", group_id)
+                .execute()
+            )
+            
+            if not group.data:
+                raise HTTPException(404, "Group not found")
+            
+            if group.data[0]["creator_id"] != user_id:
+                raise HTTPException(403, "Only admin can edit group details")
+            
+            # Prepare update data (only allow specific fields)
+            update_data = {}
+            if "name" in updates and updates["name"]:
+                update_data["name"] = updates["name"]
+            if "description" in updates:
+                update_data["description"] = updates["description"]
+            if "avatar_url" in updates:
+                update_data["avatar_url"] = updates["avatar_url"]
+            
+            if not update_data:
+                raise HTTPException(400, "No valid fields to update")
+            
+            from datetime import datetime, timezone
+            update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+            
+            # Update the group
+            updated_group = await run_in_threadpool(
+                lambda: supabase.table("chat_groups")
+                .update(update_data)
+                .eq("id", group_id)
+                .execute()
+            )
+            
+            if not updated_group.data:
+                raise HTTPException(500, "Failed to update group")
+            
+            return {
+                "success": True,
+                "group": updated_group.data[0]
+            }
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f"Error updating group: {str(e)}")
+            raise HTTPException(500, f"Failed to update group: {str(e)}")
+
     
     @staticmethod
     async def upload_group_avatar(group_id, user_id, file):

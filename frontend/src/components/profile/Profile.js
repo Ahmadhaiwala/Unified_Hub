@@ -1,6 +1,7 @@
 import { useAuth } from "../../context/AuthContext"
 import { useTheme } from "../../context/ThemeContext"
 import { useEffect, useState, useRef } from "react"
+import CompactHeatmap from "../tasks/CompactHeatmap"
 
 export default function Profile() {
   const { user } = useAuth()
@@ -415,6 +416,11 @@ export default function Profile() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Productivity Heatmap */}
+        <div className="mb-8">
+          <CompactHeatmap />
         </div>
 
         {/* Profile Details Section */}

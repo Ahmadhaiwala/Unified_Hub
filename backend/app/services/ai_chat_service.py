@@ -136,6 +136,143 @@ class AIChatService:
                 "error": True
             }
 
+    async def chat_stream(self, user_id: str, message: str, group_id: str = None):
+        """Stream AI responses in real-time using Server-Sent Events"""
+        if not self.api_key:
+            yield {
+                "content": "AI service not configured.",
+                "done": True,
+                "error": True,
+                "timestamp": datetime.now().isoformat()
+            }
+            return
+
+        try:
+            # Get conversation history filtered by group_id
+            history = await self._get_conversation_history(user_id, limit=10, group_id=group_id)
+            print(f"📜 [STREAM] Loaded {len(history)} history messages for group_id={group_id}")
+            
+            # Convert history into OpenAI/OpenRouter format
+            messages = [{"role": "system", "content": SYSTEM_RULES}]
+            
+            # Add group context if this is a group chat
+            if group_id:
+                print(f"🔍 [STREAM] Fetching group context for group_id={group_id}")
+                group_context = await self._get_group_context(group_id)
+                if group_context:
+                    context_msg = f"Context: This chat is in group '{group_context['name']}'. {group_context.get('description', '')}"
+                    messages.append({"role": "system", "content": context_msg})
+                    
+                    # Add recent group messages as context
+                    group_messages = await self._get_recent_group_messages(group_id, limit=15)
+                    if group_messages:
+                        context_text = "Recent group conversation (remember who said what):\n"
+                        for msg in group_messages[-10:]:
+                            context_text += f"{msg['sender_name']} said: \"{msg['content']}\"\n"
+                        messages.append({"role": "system", "content": context_text})
+                    
+                    # Add PDF/document attachments as context
+                    attachments = await self._get_group_attachments(group_id, limit=10)
+                    if attachments:
+                        attachment_context = "Available documents in this group:\n"
+                        for att in attachments:
+                            attachment_context += f"- {att['filename']} (uploaded by {att['uploader']})\n"
+                            if att.get('extracted_text'):
+                                attachment_context += f"  Content preview: {att['extracted_text'][:500]}...\n"
+                        messages.append({"role": "system", "content": attachment_context})
+            
+            # Add conversation history
+            for msg in reversed(history):
+                role = "user" if msg["sender"] == "user" else "assistant"
+                messages.append({"role": role, "content": msg["content"]})
+
+            # Add current user message
+            messages.append({"role": "user", "content": message})
+
+            print(f"🤖 [STREAM] Sending {len(messages)} messages to OpenRouter API with streaming enabled")
+
+            # Call OpenRouter API with streaming
+            response = requests.post(
+                self.api_url,
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": self.model_name,
+                    "messages": messages,
+                    "stream": True
+                },
+                stream=True
+            )
+
+            if response.status_code != 200:
+                error_msg = f"OpenRouter API error: {response.status_code} - {response.text}"
+                print(f"❌ [STREAM] {error_msg}")
+                yield {
+                    "content": f"AI error: {error_msg}",
+                    "done": True,
+                    "error": True,
+                    "timestamp": datetime.now().isoformat()
+                }
+                return
+
+            full_response = ""
+            
+            # Parse SSE stream
+            for line in response.iter_lines():
+                if line:
+                    line_str = line.decode('utf-8')
+                    
+                    if line_str.startswith('data: '):
+                        data_str = line_str[6:]  # Remove 'data: ' prefix
+                        
+                        if data_str == '[DONE]':
+                            print(f"✅ [STREAM] Stream completed, total length: {len(full_response)}")
+                            break
+                        
+                        try:
+                            import json
+                            chunk_data = json.loads(data_str)
+                            
+                            # Extract content from delta
+                            if 'choices' in chunk_data and len(chunk_data['choices']) > 0:
+                                delta = chunk_data['choices'][0].get('delta', {})
+                                content = delta.get('content', '')
+                                
+                                if content:
+                                    full_response += content
+                                    yield {
+                                        "content": content,
+                                        "done": False
+                                    }
+                        except json.JSONDecodeError as e:
+                            print(f"⚠️ [STREAM] Failed to parse chunk: {e}")
+                            continue
+
+            # Store complete message
+            print(f"💾 [STREAM] Storing complete message (group_id={group_id})")
+            await self._store_message(user_id, message, full_response, group_id)
+
+            # Send final done signal
+            yield {
+                "content": "",
+                "done": True,
+                "error": False,
+                "timestamp": datetime.now().isoformat()
+            }
+
+        except Exception as e:
+            print(f"❌ [STREAM] Error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            yield {
+                "content": f"AI error: {str(e)}",
+                "done": True,
+                "error": True,
+                "timestamp": datetime.now().isoformat()
+            }
+
     async def _get_conversation_history(self, user_id: str, limit: int = 10, group_id: str = None) -> List[Dict]:
         """Get recent conversation history for a user, optionally filtered by group"""
         try:

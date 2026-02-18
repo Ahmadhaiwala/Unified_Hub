@@ -75,31 +75,104 @@ export default function AIChatWindow({ groupId = null, groupName = null }) {
                 return
             }
 
-            const response = await axios.post(
-                `${API_URL}/api/ai/chat`,
-                {
-                    message: userMessage,
-                    group_id: groupId
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${user.access_token}`,
-                        "Content-Type": "application/json"
-                    }
-                }
-            )
-
-            // Add AI response to UI
+            // Add placeholder for AI response
+            const aiMsgIndex = messages.length + 1
             const aiMsg = {
                 sender: "ai",
-                content: response.data.response,
-                timestamp: response.data.timestamp
+                content: "",
+                timestamp: new Date().toISOString(),
+                isStreaming: true
             }
             setMessages(prev => [...prev, aiMsg])
 
+            // Use streaming endpoint
+            const response = await fetch(
+                `${API_URL}/api/ai/chat/stream`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${user.access_token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: userMessage,
+                        group_id: groupId
+                    })
+                }
+            )
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`)
+            }
+
+            const reader = response.body.getReader()
+            const decoder = new TextDecoder()
+            let buffer = ""
+
+            while (true) {
+                const { done, value } = await reader.read()
+                
+                if (done) {
+                    console.log("Stream complete")
+                    break
+                }
+
+                buffer += decoder.decode(value, { stream: true })
+                const lines = buffer.split('\n')
+                
+                // Keep the last incomplete line in the buffer
+                buffer = lines.pop() || ""
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(line.slice(6))
+                            
+                            if (data.error) {
+                                setError(data.content)
+                                setMessages(prev => {
+                                    const updated = [...prev]
+                                    updated[aiMsgIndex] = {
+                                        ...updated[aiMsgIndex],
+                                        content: data.content,
+                                        isError: true,
+                                        isStreaming: false
+                                    }
+                                    return updated
+                                })
+                                break
+                            }
+                            
+                            if (data.done) {
+                                setMessages(prev => {
+                                    const updated = [...prev]
+                                    updated[aiMsgIndex] = {
+                                        ...updated[aiMsgIndex],
+                                        isStreaming: false,
+                                        timestamp: data.timestamp || new Date().toISOString()
+                                    }
+                                    return updated
+                                })
+                            } else if (data.content) {
+                                setMessages(prev => {
+                                    const updated = [...prev]
+                                    updated[aiMsgIndex] = {
+                                        ...updated[aiMsgIndex],
+                                        content: updated[aiMsgIndex].content + data.content
+                                    }
+                                    return updated
+                                })
+                            }
+                        } catch (parseError) {
+                            console.error("Failed to parse SSE data:", parseError)
+                        }
+                    }
+                }
+            }
+
         } catch (err) {
             console.error("AI Chat Error:", err)
-            setError(err.response?.data?.detail || "Failed to get AI response")
+            setError(err.message || "Failed to get AI response")
 
             // Add error message to chat
             const errorMsg = {
@@ -136,11 +209,18 @@ export default function AIChatWindow({ groupId = null, groupName = null }) {
         return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
 
-    function renderMessageContent(content) {
+    function renderMessageContent(content, isStreaming = false) {
         const codeBlocks = detectCodeBlocks(content)
 
         if (codeBlocks.length === 0) {
-            return <div className="whitespace-pre-wrap break-words">{content}</div>
+            return (
+                <div className="whitespace-pre-wrap break-words">
+                    {content}
+                    {isStreaming && (
+                        <span className="inline-block w-2 h-4 ml-1 bg-current animate-pulse">|</span>
+                    )}
+                </div>
+            )
         }
 
         // Split content by code blocks and render
@@ -243,7 +323,7 @@ export default function AIChatWindow({ groupId = null, groupName = null }) {
                                         : `${themeStyles.secondbar} ${themeStyles.text}`
                                     }`}
                             >
-                                {renderMessageContent(msg.content)}
+                                {renderMessageContent(msg.content, msg.isStreaming)}
                                 <div
                                     className={`text-xs mt-1 ${msg.sender === "user" ? "text-blue-100" : themeStyles.accent
                                         }`}

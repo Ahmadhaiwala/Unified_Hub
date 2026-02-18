@@ -1,7 +1,7 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from app.core.security import get_current_user
 from app.core.supabase import supabase
-from app.schemas.chat import MessageCreate, Message, ConversationListOut, ConversationDetail
+from app.schemas.chat import MessageCreate, Message, ConversationListOut, ConversationDetail, MessageUpdateRequest
 from app.services.chatservices import ChatService
 from app.services.chatgroupservices import ChatGroupService
 from typing import List, Dict, Set
@@ -244,10 +244,69 @@ async def start_conversation(friend_id: str, current_user=Depends(get_current_us
     """Start or get existing conversation with a friend"""
     return await ChatService.get_or_create_conversation(current_user.id, friend_id)
 
-@router.get("/chat/conversations/{conversation_id}/messages", response_model=List[Message])
-async def get_messages(conversation_id: str, current_user=Depends(get_current_user)):
-    """Get all messages in a conversation"""
-    return await ChatService.get_conversation_messages(conversation_id, current_user.id)
+@router.get("/chat/conversations/{conversation_id}/messages")
+async def get_messages(
+    conversation_id: str, 
+    limit: int = 20,
+    offset: int = 0,
+    current_user=Depends(get_current_user)
+):
+    """Get messages in a conversation with pagination"""
+    return await ChatService.get_conversation_messages(conversation_id, current_user.id, limit, offset)
+
+@router.get("/chat/conversations/{conversation_id}/title")
+async def get_conversation_title(conversation_id: str, current_user=Depends(get_current_user)):
+    """Get conversation title (friend name) for caching"""
+    try:
+        conversation = await ChatService.get_conversation_details(conversation_id, current_user.id)
+        
+        # Get the other participant
+        other_user_id = (
+            conversation["participant2_id"] 
+            if conversation["participant1_id"] == current_user.id 
+            else conversation["participant1_id"]
+        )
+        
+        # Get other user's profile
+        from app.core.supabase import supabase
+        profile = (
+            supabase.table("profiles")
+            .select("username")
+            .eq("id", other_user_id)
+            .execute()
+        ).data
+        
+        if not profile_data:
+            raise HTTPException(404, "Participant not found")
+        
+        return ConversationTitle(
+            conversation_id=conversation_id,
+            title=profile_data[0]["username"] if profile_data else "Unknown",
+            type="direct"
+        )
+    except Exception as e:
+        print(f"Error getting conversation title: {str(e)}")
+        raise HTTPException(500, f"Failed to get conversation title: {str(e)}")
+
+@router.delete("/chat/conversations/{conversation_id}")
+async def delete_conversation(conversation_id: str, current_user=Depends(get_current_user)):
+    """Delete entire conversation and all its messages"""
+    return await ChatService.delete_conversation(conversation_id, current_user.id)
+
+@router.delete("/chat/messages/{message_id}")
+async def delete_message(message_id: str, current_user=Depends(get_current_user)):
+    """Delete a specific message (only if user is sender)"""
+    return await ChatService.delete_message(message_id, current_user.id)
+
+@router.put("/chat/messages/{message_id}")
+async def update_message(
+    message_id: str,
+    request: MessageUpdateRequest,
+    current_user=Depends(get_current_user)
+):
+    """Update/edit a message (only if user is sender)"""
+    return await ChatService.update_message(message_id, current_user.id, request.content)
+
 
 @router.post("/chat/conversations/{conversation_id}/messages", response_model=Message)
 async def send_message(

@@ -18,8 +18,28 @@ export default function GroupMembersModal({ groupId, groupName, onClose, onGroup
     useEffect(() => {
         if (groupId) {
             fetchMembers()
+            fetchGroupData()
         }
     }, [groupId])
+
+    async function fetchGroupData() {
+        try {
+            const response = await fetch(
+                `http://localhost:8000/api/chatgroups/${groupId}`,
+                {
+                    headers: { Authorization: `Bearer ${user.access_token}` },
+                }
+            )
+
+            if (response.ok) {
+                const data = await response.json()
+                setGroupAvatar(data.avatar_url || '')
+                setNewGroupName(data.name || groupName)
+            }
+        } catch (error) {
+            console.error("Failed to fetch group data:", error)
+        }
+    }
 
     async function fetchMembers() {
         try {
@@ -247,14 +267,101 @@ export default function GroupMembersModal({ groupId, groupName, onClose, onGroup
 
                     {/* Footer */}
                     {isAdmin && (
-                        <div className={`p-4 border-t ${themeStyles.border}`}>
-                            <button
-                                onClick={() => setShowAddModal(true)}
-                                className={`w-full ${themeStyles.button} py-2 rounded-lg hover:opacity-90 transition`}
-                            >
-                                + Add Members
-                            </button>
-                        </div>
+                        <>
+                            {/* Edit Group Details Section */}
+                            <div className={`p-4 border-t ${themeStyles.border}`}>
+                                <h3 className={`text-sm font-semibold ${themeStyles.text} mb-3`}>
+                                    Edit Group Details
+                                </h3>
+                                
+                                <div className="space-y-3">
+                                    {/* Group Name */}
+                                    <div>
+                                        <label className={`block text-xs ${themeStyles.accent} mb-1`}>
+                                            Group Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={newGroupName}
+                                            onChange={(e) => setNewGroupName(e.target.value)}
+                                            className={`w-full px-3 py-2 rounded ${themeStyles.secondbar} ${themeStyles.text} border ${themeStyles.border} text-sm`}
+                                            placeholder="e.g., Study Group, Project Team..."
+                                        />
+                                    </div>
+                                    
+                                    {/* Group Avatar URL */}
+                                    <div>
+                                        <label className={`block text-xs ${themeStyles.accent} mb-1`}>
+                                            Avatar URL
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={groupAvatar || ''}
+                                            onChange={(e) => setGroupAvatar(e.target.value)}
+                                            className={`w-full px-3 py-2 rounded ${themeStyles.secondbar} ${themeStyles.text} border ${themeStyles.border} text-sm`}
+                                            placeholder="https://example.com/avatar.jpg"
+                                        />
+                                    </div>
+                                    
+                                    {/* Save Button */}
+                                    <button
+                                        onClick={async () => {
+                                            if (!newGroupName.trim()) {
+                                                alert("Group name cannot be empty")
+                                                return
+                                            }
+                                            
+                                            setUpdating(true)
+                                            try {
+                                                const response = await fetch(
+                                                    `http://localhost:8000/api/chatgroups/${groupId}`,
+                                                    {
+                                                        method: 'PUT',
+                                                        headers: {
+                                                            'Authorization': `Bearer ${user.access_token}`,
+                                                            'Content-Type': 'application/json'
+                                                        },
+                                                        body: JSON.stringify({
+                                                            name: newGroupName,
+                                                            avatar_url: groupAvatar || null
+                                                        })
+                                                    }
+                                                )
+                                                
+                                                if (response.ok) {
+                                                    alert("Group details updated successfully!")
+                                                    if (onGroupUpdated) {
+                                                        onGroupUpdated()
+                                                    }
+                                                } else {
+                                                    const error = await response.json()
+                                                    alert(error.detail || "Failed to update group")
+                                                }
+                                            } catch (error) {
+                                                console.error("Failed to update group:", error)
+                                                alert("Failed to update group")
+                                            } finally {
+                                                setUpdating(false)
+                                            }
+                                        }}
+                                        disabled={updating}
+                                        className={`w-full ${themeStyles.button} py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50 text-sm`}
+                                    >
+                                        {updating ? "Saving..." : "💾 Save Changes"}
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            {/* Add Members Button */}
+                            <div className={`p-4 border-t ${themeStyles.border}`}>
+                                <button
+                                    onClick={() => setShowAddModal(true)}
+                                    className={`w-full ${themeStyles.button} py-2 rounded-lg hover:opacity-90 transition`}
+                                >
+                                    + Add Members
+                                </button>
+                            </div>
+                        </>
                     )}
 
                     {/* Leave Group (for all members) */}
@@ -399,7 +506,7 @@ function AddMemberModal({ groupId, onClose }) {
                         <div className="mt-3">
                             <input
                                 type="text"
-                                placeholder="Search users..."
+                                placeholder="🔍 Search by name or email..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 ${themeStyles.input}`}

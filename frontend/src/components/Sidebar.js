@@ -21,6 +21,12 @@ const menu = [
     path: "/chat",
   },
   {
+    label: "Tasks",
+    icon: "📋",
+    path: "/tasks",
+  },
+  
+  {
     label: "Discover Users",
     icon: "🔍",
     path: "/users",
@@ -83,7 +89,7 @@ export default function Sidebar({ onNavigate }) {
     ${open ? "translate-x-0" : "-translate-x-full"}
     lg:translate-x-0
     border-r-2
-    ${themeStyles.cardBg} ${themeStyles.text} ${themeStyles.border}
+    ${themeStyles.bg} ${themeStyles.text} ${themeStyles.border}
   `}
       >
         {/* HEADER */}

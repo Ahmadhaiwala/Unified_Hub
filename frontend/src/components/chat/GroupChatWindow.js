@@ -4,6 +4,7 @@ import { useTheme } from "../../context/ThemeContext"
 import GroupMembersModal from "./GroupMembersModal"
 import AttachmentDisplay, { FileUploadButton, FilePreview } from "./AttachmentDisplay"
 import GroupAIChatPanel from "./GroupAIChatPanel"
+import { saveConversationTitle, getConversationTitle } from "../../utils/localStorageUtils"
 
 export default function GroupChatWindow({ groupId, groupName, onMessageSent, onGroupDeleted, onGroupUpdated, onGroupLeft }) {
     const { user } = useAuth()
@@ -18,15 +19,39 @@ export default function GroupChatWindow({ groupId, groupName, onMessageSent, onG
     const [uploadingFile, setUploadingFile] = useState(false)
     const [typingUsers, setTypingUsers] = useState(new Set())
     const [showAIChat, setShowAIChat] = useState(false)
+    const [displayName, setDisplayName] = useState(groupName || "Loading...")
+    const [hasMore, setHasMore] = useState(false)
+    const [loadingMore, setLoadingMore] = useState(false)
+    const [totalCount, setTotalCount] = useState(0)
+    const [isAdmin, setIsAdmin] = useState(false)
+    const [groupAvatar, setGroupAvatar] = useState(null)
+    const [groupData, setGroupData] = useState(null)
+    const [showEditGroupModal, setShowEditGroupModal] = useState(false)
+    const [editGroupName, setEditGroupName] = useState("")
+    const [editGroupDescription, setEditGroupDescription] = useState("")
+    const [editGroupAvatar, setEditGroupAvatar] = useState("")
+    const [editingMessageId, setEditingMessageId] = useState(null)
+    const [editMessageContent, setEditMessageContent] = useState("")
     const messagesEndRef = useRef(null)
     const wsRef = useRef(null)
     const typingTimeoutRef = useRef(null)
     const typingIndicatorTimeouts = useRef(new Map())
+    const fileInputRef = useRef(null)
 
     useEffect(() => {
         if (groupId && user?.access_token) {
+            // Try to load cached title first
+            const cachedTitle = getConversationTitle(groupId)
+            if (cachedTitle) {
+                setDisplayName(cachedTitle)
+            } else if (groupName) {
+                setDisplayName(groupName)
+                saveConversationTitle(groupId, groupName, 'group')
+            }
+            
             fetchMessages()
             fetchMembers()
+            fetchGroupDetails()
             connectWebSocket()
         }
 
@@ -121,6 +146,18 @@ export default function GroupChatWindow({ groupId, groupName, onMessageSent, onG
                     if (data.group_id === groupId) {
                         fetchMessages()
                     }
+                } else if (data.type === "message_deleted" && data.group_id === groupId) {
+                    // Handle message deletion in real-time
+                    setMessages((prev) => prev.filter(m => m.id !== data.message_id))
+                } else if (data.type === "group_updated" && data.group_id === groupId) {
+                    // Handle group updates in real-time
+                    if (data.group) {
+                        setDisplayName(data.group.name)
+                        setGroupAvatar(data.group.avatar_url)
+                        setGroupData(data.group)
+                        // Optionally, trigger a callback for parent component to update group list
+                        onGroupUpdated(data.group)
+                    }
                 }
             }
 
@@ -177,12 +214,17 @@ export default function GroupChatWindow({ groupId, groupName, onMessageSent, onG
         typingIndicatorTimeouts.current.set(userId, timeout)
     }
 
-    async function fetchMessages() {
+    async function fetchMessages(loadMore = false) {
         if (!groupId || !user?.access_token) return
 
+        if (loadMore) {
+            setLoadingMore(true)
+        }
+
         try {
+            const offset = loadMore ? messages.length : 0
             const response = await fetch(
-                `http://localhost:8000/api/chatgroups/${groupId}/messages`,
+                `http://localhost:8000/api/chatgroups/${groupId}/messages?limit=20&offset=${offset}`,
                 {
                     headers: { Authorization: `Bearer ${user.access_token}` },
                 }
@@ -193,24 +235,27 @@ export default function GroupChatWindow({ groupId, groupName, onMessageSent, onG
                 console.log("=== RAW API RESPONSE ===")
                 console.log("Full data object:", data)
                 console.log("Messages count:", data.messages?.length)
-                console.log("First message (if exists):", data.messages?.[0])
                 console.log("========================")
 
-                console.log("Fetched messages:", data.messages)
-                // Log messages with attachments
-                let attachmentCount = 0
-                data.messages?.forEach(msg => {
-                    if (msg.attachment) {
-                        attachmentCount++
-                        console.log("✅ Message with attachment:", msg)
+                if (loadMore) {
+                    setMessages((prev) => [...data.messages, ...prev])
+                } else {
+                    setMessages(data.messages || [])
+                    // Save group name to cache
+                    if (groupName) {
+                        saveConversationTitle(groupId, groupName, 'group')
                     }
-                })
-                console.log(`Total messages with attachments: ${attachmentCount}`)
-
-                setMessages(data.messages || [])
+                }
+                
+                setTotalCount(data.total_count || 0)
+                setHasMore(data.has_more || false)
             }
         } catch (error) {
             console.error("Failed to fetch messages:", error)
+        } finally {
+            if (loadMore) {
+                setLoadingMore(false)
+            }
         }
     }
 
@@ -231,6 +276,135 @@ export default function GroupChatWindow({ groupId, groupName, onMessageSent, onG
             }
         } catch (error) {
             console.error("Failed to fetch members:", error)
+        }
+    }
+
+    async function fetchGroupDetails() {
+        if (!groupId || !user?.access_token) return
+
+        try {
+            const response = await fetch(
+                `http://localhost:8000/api/chatgroups/${groupId}`,
+                {
+                    headers: { Authorization: `Bearer ${user.access_token}` },
+                }
+            )
+
+            if (response.ok) {
+                const data = await response.json()
+                setGroupData(data)
+                setGroupAvatar(data.avatar_url)
+                
+                // Check if current user is admin
+                if (data.created_by === user.user.id) {
+                    setIsAdmin(true)
+                }
+            }
+        } catch (error) {
+            console.error("Failed to fetch group details:", error)
+        }
+    }
+
+    const handleDeleteMessage = async (messageId) => {
+        if (!window.confirm("Delete this message?")) return
+
+        try {
+            const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000"
+            const response = await fetch(`${API_URL}/api/chatgroups/${groupId}/messages/${messageId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${user.access_token}` }
+            })
+
+            if (!response.ok) throw new Error('Failed to delete message')
+            
+            setMessages(prev => prev.filter(m => m.id !== messageId))
+        } catch (error) {
+            console.error("Error deleting message:", error)
+            alert("Failed to delete message")
+        }
+    }
+
+    const handleEditMessage = async (messageId) => {
+        if (!editMessageContent.trim()) {
+            alert("Message cannot be empty")
+            return
+        }
+
+        try {
+            const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000"
+            const response = await fetch(`${API_URL}/api/chatgroups/${groupId}/messages/${messageId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${user.access_token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ content: editMessageContent })
+            })
+
+            if (!response.ok) throw new Error('Failed to edit message')
+            
+            const updatedMessage = await response.json()
+            setMessages(prev => prev.map(m => m.id === messageId ? { ...m, content: editMessageContent } : m))
+            setEditingMessageId(null)
+            setEditMessageContent("")
+        } catch (error) {
+            console.error("Error editing message:", error)
+            alert("Failed to edit message")
+        }
+    }
+
+    const startEditMessage = (msg) => {
+        setEditingMessageId(msg.id)
+        setEditMessageContent(msg.content)
+    }
+
+    const cancelEditMessage = () => {
+        setEditingMessageId(null)
+        setEditMessageContent("")
+    }
+
+    const openEditGroupModal = () => {
+        setEditGroupName(displayName)
+        setEditGroupDescription(groupData?.description || "")
+        setEditGroupAvatar(groupAvatar || "")
+        setShowEditGroupModal(true)
+    }
+
+    const handleUpdateGroup = async () => {
+        if (!editGroupName.trim()) {
+            alert("Group name cannot be empty")
+            return
+        }
+
+        try {
+            const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000"
+            const response = await fetch(`${API_URL}/api/chatgroups/${groupId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${user.access_token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: editGroupName,
+                    description: editGroupDescription,
+                    avatar_url: editGroupAvatar
+                })
+            })
+
+            if (!response.ok) throw new Error('Failed to update group')
+
+            const result = await response.json()
+            
+            // Update local state
+            setDisplayName(result.group.name)
+            setGroupAvatar(result.group.avatar_url)
+            setGroupData(result.group)
+            setShowEditGroupModal(false)
+            
+            alert("Group updated successfully!")
+        } catch (error) {
+            console.error("Error updating group:", error)
+            alert("Failed to update group")
         }
     }
 
@@ -343,6 +517,13 @@ export default function GroupChatWindow({ groupId, groupName, onMessageSent, onG
         }
     }
 
+    function handleFileSelect(e) {
+        const file = e.target.files?.[0]
+        if (file) {
+            setSelectedFile(file)
+        }
+    }
+
     async function downloadAttachment(attachment) {
         try {
             const response = await fetch(
@@ -427,32 +608,62 @@ export default function GroupChatWindow({ groupId, groupName, onMessageSent, onG
             {/* Main Chat Area */}
             <div className="flex flex-col flex-1">
                 {/* Header */}
-                <div className={`${themeStyles.secondbar} p-4 ${themeStyles.border} border-b flex justify-between items-center`}>
-                    <div className="flex-1">
-                        <h2 className={`text-xl font-bold ${themeStyles.text}`}>{groupName}</h2>
-                        <button
-                            onClick={() => setShowMembersModal(true)}
-                            className={`text-sm ${themeStyles.accent} hover:underline cursor-pointer`}
-                        >
-                            {members.length} member{members.length !== 1 ? "s" : ""} - Click to manage
-                        </button>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => window.location.href = `/assignments/${groupId}`}
-                            className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors bg-green-600 text-white hover:bg-green-700`}
-                            title="View Question Poles"
-                        >
-                            📚 Question Poles
-                        </button>
-                        <button
-                            onClick={() => setShowAIChat(!showAIChat)}
-                            className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${showAIChat
-                                ? "bg-purple-600 text-white"
-                                : `${themeStyles.button}`
-                                }`}
-                            title="Toggle AI Assistant"
-                        >
+                <div className={`${themeStyles.secondbar} p-4 ${themeStyles.border} border-b`}>
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            {/* Group Avatar */}
+                            {groupAvatar ? (
+                                <img 
+                                    src={groupAvatar} 
+                                    alt={displayName}
+                                    className="w-12 h-12 rounded-full object-cover border-2 border-purple-500"
+                                />
+                            ) : (
+                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center border-2 border-purple-500">
+                                    <span className="text-white text-xl font-bold">
+                                        {displayName?.charAt(0).toUpperCase()}
+                                    </span>
+                                </div>
+                            )}
+                            
+                            <div>
+                                <h2 className={`text-xl font-bold ${themeStyles.text}`}>
+                                    {displayName}
+                                </h2>
+                                <button
+                                    onClick={() => setShowMembersModal(true)}
+                                    className={`text-sm ${themeStyles.accent} hover:underline cursor-pointer`}
+                                >
+                                    {members.length} member{members.length !== 1 ? "s" : ""} - Click to manage
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            {isAdmin && (
+                                <button
+                                    onClick={openEditGroupModal}
+                                    className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm transition-colors"
+                                    title="Edit group"
+                                >
+                                    ⚙️ Edit
+                                </button>
+                            )}
+                            <button
+                                onClick={() => window.location.href = `/assignments/${groupId}`}
+                                className="px-3 py-1 rounded-lg text-sm font-medium transition-colors bg-green-600 text-white hover:bg-green-700"
+                                title="View Question Poles"
+                            >
+                                📚 Question Poles
+                            </button>
+                            <button
+                                onClick={() => setShowAIChat(!showAIChat)}
+                                className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${showAIChat
+                                    ? "bg-purple-600 text-white"
+                                    : `${themeStyles.button}`
+                                    }`}
+                                title="Toggle AI Assistant"
+                            >
                             🤖 AI
                         </button>
                         <div className="flex items-center gap-2">
@@ -467,20 +678,27 @@ export default function GroupChatWindow({ groupId, groupName, onMessageSent, onG
                         </div>
                     </div>
                 </div>
+                </div>
 
                 {/* Messages */}
                 <div className={`flex-1 overflow-y-auto p-4 space-y-3 ${themeStyles.cardBg}`}>
+                    {/* Load More Button */}
+                    {hasMore && (
+                        <div className="flex justify-center mb-4">
+                            <button
+                                onClick={() => fetchMessages(true)}
+                                disabled={loadingMore}
+                                className={`${themeStyles.button} px-4 py-2 rounded-lg text-sm disabled:opacity-50`}
+                            >
+                                {loadingMore ? "Loading..." : "Load More Messages"}
+                            </button>
+                        </div>
+                    )}
+                    
                     {messages.map((msg) => {
                         const isOwnMessage = msg.sender_id === user.user.id
+                        const sender = members.find((m) => m.user_id === msg.sender_id)
                         const hasAttachment = msg.content?.startsWith("📎")
-
-                        // DEBUG: Log each message to see what we have
-                        console.log("Rendering message:", {
-                            id: msg.id,
-                            content: msg.content,
-                            hasAttachmentObject: !!msg.attachment,
-                            attachment: msg.attachment
-                        })
 
                         return (
                             <div
@@ -488,20 +706,18 @@ export default function GroupChatWindow({ groupId, groupName, onMessageSent, onG
                                 className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}
                             >
                                 <div
-                                    className={`max-w-xs lg:max-w-md ${hasAttachment ? "" : "px-4 py-2"
-                                        } rounded-lg shadow-md ${isOwnMessage
-                                            ? "bg-blue-500 text-white"
-                                            : `${themeStyles.secondbar} ${themeStyles.text} border ${themeStyles.border}`
+                                    className={`max-w-xs lg:max-w-md ${hasAttachment ? "" : "px-4 py-2"} rounded-lg shadow-md ${isOwnMessage
+                                        ? "bg-blue-500 text-white"
+                                        : `${themeStyles.secondbar} ${themeStyles.text} border ${themeStyles.border}`
                                         }`}
                                 >
                                     {!isOwnMessage && (
                                         <p className={`text-xs font-semibold mb-1 opacity-70 ${hasAttachment ? "px-4 pt-2" : ""}`}>
-                                            {members.find(m => m.user_id === msg.sender_id)?.username ||
-                                                `User ${msg.sender_id.slice(0, 8)}`}
+                                            {sender?.username || "Unknown"}
                                         </p>
                                     )}
-
-                                    {/* Check if message has attachment data */}
+                                    
+                                    {/* Attachment Display */}
                                     {msg.attachment ? (
                                         <div className={isOwnMessage ? "p-2" : "px-4 pb-2"}>
                                             <AttachmentDisplay
@@ -511,56 +727,106 @@ export default function GroupChatWindow({ groupId, groupName, onMessageSent, onG
                                                 canDelete={msg.sender_id === user.user.id}
                                             />
                                         </div>
-                                    ) : hasAttachment ? (
-                                        <div className={hasAttachment && !isOwnMessage ? "px-4 pb-2" : hasAttachment && isOwnMessage ? "p-2" : ""}>
-                                            {/* Fallback for old attachment format */}
-                                            <p className={!isOwnMessage ? "" : ""}>{msg.content}</p>
-                                            <p className={`text-xs mt-1 ${isOwnMessage ? "text-blue-100" : "opacity-60"}`}>
-                                                {new Date(msg.created_at).toLocaleTimeString([], {
-                                                    hour: "2-digit",
-                                                    minute: "2-digit",
-                                                })}
-                                            </p>
+                                    ) : editingMessageId === msg.id ? (
+                                        <div className="space-y-2">
+                                            <input
+                                                type="text"
+                                                value={editMessageContent}
+                                                onChange={(e) => setEditMessageContent(e.target.value)}
+                                                className={`w-full px-2 py-1 rounded ${isOwnMessage ? "bg-blue-600 text-white" : `${themeStyles.input}`} text-sm`}
+                                                autoFocus
+                                            />
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => handleEditMessage(msg.id)}
+                                                    className={`px-2 py-1 text-xs rounded ${isOwnMessage ? "bg-green-600 hover:bg-green-700" : "bg-green-500 hover:bg-green-600"} text-white`}
+                                                >
+                                                    ✓ Save
+                                                </button>
+                                                <button
+                                                    onClick={cancelEditMessage}
+                                                    className={`px-2 py-1 text-xs rounded ${isOwnMessage ? "bg-gray-600 hover:bg-gray-700" : "bg-gray-500 hover:bg-gray-600"} text-white`}
+                                                >
+                                                    ✕ Cancel
+                                                </button>
+                                            </div>
                                         </div>
                                     ) : (
                                         <>
                                             <p>{msg.content}</p>
-                                            <p className={`text-xs mt-1 ${isOwnMessage ? "text-blue-100" : "opacity-60"}`}>
-                                                {new Date(msg.created_at).toLocaleTimeString([], {
-                                                    hour: "2-digit",
-                                                    minute: "2-digit",
-                                                })}
-                                            </p>
+                                            <div className="flex items-center justify-between mt-1">
+                                                <p className={`text-xs ${isOwnMessage ? "text-blue-100" : "opacity-60"}`}>
+                                                    {new Date(msg.created_at).toLocaleTimeString([], {
+                                                        hour: "2-digit",
+                                                        minute: "2-digit",
+                                                    })}
+                                                </p>
+                                                {isOwnMessage && (
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => startEditMessage(msg)}
+                                                            className={`text-xs px-2 py-1 rounded ${isOwnMessage ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-500 hover:bg-gray-600"} transition`}
+                                                            title="Edit message"
+                                                        >
+                                                            ✏️
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteMessage(msg.id)}
+                                                            className={`text-xs px-2 py-1 rounded ${isOwnMessage ? "bg-red-600 hover:bg-red-700" : "bg-red-500 hover:bg-red-600"} transition`}
+                                                            title="Delete message"
+                                                        >
+                                                            🗑️
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </>
                                     )}
                                 </div>
                             </div>
                         )
                     })}
+                    
+                    {/* Typing Indicator */}
+                    {renderTypingIndicator()}
+
                     <div ref={messagesEndRef} />
                 </div>
 
-                {/* Typing Indicator */}
-                {renderTypingIndicator()}
-
-                {/* File Preview */}
-                {selectedFile && (
-                    <div className="px-4 pb-2">
-                        <FilePreview
-                            file={selectedFile}
-                            onRemove={() => setSelectedFile(null)}
-                        />
-                    </div>
-                )}
-
-                {/* Input */}
-                <form onSubmit={sendMessage} className={`${themeStyles.border} border-t p-4 ${themeStyles.cardBg}`}>
+                {/* Input Form */}
+                <form
+                    onSubmit={sendMessage}
+                    className={`${themeStyles.secondbar} p-4 ${themeStyles.border} border-t`}
+                >
+                    {selectedFile && (
+                        <div className={`mb-2 p-2 ${themeStyles.cardBg} rounded flex items-center justify-between`}>
+                            <span className={`text-sm ${themeStyles.text}`}>
+                                📎 {selectedFile.name}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => setSelectedFile(null)}
+                                className="text-red-500 hover:text-red-700"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                    )}
                     <div className="flex gap-2">
-                        <FileUploadButton
-                            onFileSelect={setSelectedFile}
-                            disabled={loading || !connected || uploadingFile}
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileSelect}
+                            className="hidden"
                         />
-
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className={`${themeStyles.button} px-3 py-2 rounded-lg`}
+                            title="Attach file"
+                        >
+                            📎
+                        </button>
                         <input
                             type="text"
                             value={newMessage}
@@ -581,25 +847,83 @@ export default function GroupChatWindow({ groupId, groupName, onMessageSent, onG
                         </button>
                     </div>
                 </form>
+
+                {/* Edit Group Modal */}
+                {showEditGroupModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className={`${themeStyles.cardBg} p-6 rounded-lg shadow-xl max-w-md w-full mx-4`}>
+                            <h3 className={`text-xl font-bold ${themeStyles.text} mb-4`}>Edit Group</h3>
+                            
+                            <div className="space-y-4">
+                                <div>
+                                    <label className={`block text-sm font-medium ${themeStyles.text} mb-1`}>
+                                        Group Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={editGroupName}
+                                        onChange={(e) => setEditGroupName(e.target.value)}
+                                        className={`w-full px-3 py-2 rounded ${themeStyles.secondbar} ${themeStyles.text} border ${themeStyles.border}`}
+                                        placeholder="Enter group name"
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className={`block text-sm font-medium ${themeStyles.text} mb-1`}>
+                                        Description
+                                    </label>
+                                    <textarea
+                                        value={editGroupDescription}
+                                        onChange={(e) => setEditGroupDescription(e.target.value)}
+                                        className={`w-full px-3 py-2 rounded ${themeStyles.secondbar} ${themeStyles.text} border ${themeStyles.border}`}
+                                        placeholder="Enter description"
+                                        rows={3}
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className={`block text-sm font-medium ${themeStyles.text} mb-1`}>
+                                        Avatar URL
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={editGroupAvatar}
+                                        onChange={(e) => setEditGroupAvatar(e.target.value)}
+                                        className={`w-full px-3 py-2 rounded ${themeStyles.secondbar} ${themeStyles.text} border ${themeStyles.border}`}
+                                        placeholder="Enter avatar URL"
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div className="flex gap-3 mt-6">
+                                <button
+                                    onClick={handleUpdateGroup}
+                                    className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+                                >
+                                    Save Changes
+                                </button>
+                                <button
+                                    onClick={() => setShowEditGroupModal(false)}
+                                    className={`flex-1 px-4 py-2 ${themeStyles.button} rounded-lg transition-colors`}
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* AI Chat Panel */}
-            <GroupAIChatPanel
-                groupId={groupId}
-                groupName={groupName}
-                isExpanded={showAIChat}
-                onToggle={() => setShowAIChat(!showAIChat)}
-            />
+            {showAIChat && (
+                <GroupAIChatPanel groupId={groupId} groupName={displayName} isExpanded={true} />
+            )}
 
             {/* Members Modal */}
             {showMembersModal && (
                 <GroupMembersModal
                     groupId={groupId}
-                    groupName={groupName}
-                    onClose={() => {
-                        setShowMembersModal(false)
-                        fetchMembers() // Refresh members after modal closes
-                    }}
+                    onClose={() => setShowMembersModal(false)}
                     onGroupDeleted={onGroupDeleted}
                     onGroupUpdated={onGroupUpdated}
                     onGroupLeft={onGroupLeft}
@@ -608,3 +932,4 @@ export default function GroupChatWindow({ groupId, groupName, onMessageSent, onG
         </div>
     )
 }
+
