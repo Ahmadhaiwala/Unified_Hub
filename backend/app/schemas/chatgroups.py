@@ -21,6 +21,7 @@ class GroupMessegeOut(BaseModel):
     id: UUID
     group_id: UUID
     sender_id: UUID
+    sender_username: Optional[str] = None  # Added for displaying sender name
     content: str
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None

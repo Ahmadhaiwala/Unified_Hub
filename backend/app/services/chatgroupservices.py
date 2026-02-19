@@ -482,6 +482,10 @@ class ChatGroupService:
             # Generate UUID for the message
             message_id = str(uuid.uuid4())
             
+            print(f"📝 Attempting to save message: {message_id}")
+            print(f"   Group: {group_id}, User: {user_id}")
+            print(f"   Content: {message[:50]}...")
+            
             response = await run_in_threadpool(
                 lambda: supabase
                     .table("group_messeges")
@@ -494,11 +498,15 @@ class ChatGroupService:
                     .execute()
             )
 
-            print("Database response:", response)
+            print(f"✅ Database insert response: {response.data}")
+            print(f"   Response status: {response}")
 
             if not response.data:
-                raise HTTPException(status_code=500, detail="Failed to send message")
+                print("❌ ERROR: No data returned from insert")
+                print(f"   Full response: {response}")
+                raise HTTPException(status_code=500, detail="Failed to send message - no data returned")
 
+            # Verify the message was actually inserted by fetching it
             fetch_response = await run_in_threadpool(
                 lambda: supabase
                     .table("group_messeges")
@@ -506,8 +514,30 @@ class ChatGroupService:
                     .eq("id", message_id)
                     .execute()
             )
+            
+            print(f"🔍 Verification fetch: {fetch_response.data}")
 
-            message_record = fetch_response.data[0] if fetch_response.data else response.data[0]
+            if not fetch_response.data or len(fetch_response.data) == 0:
+                print(f"❌ CRITICAL: Message {message_id} was NOT found in database after insert!")
+                print(f"   This means the insert failed silently or was rolled back")
+                raise HTTPException(status_code=500, detail="Message insert verification failed")
+
+            message_record = fetch_response.data[0]
+            print(f"✅ Message saved and verified: {message_record['id']}")
+
+            # Fetch sender profile for embedding
+            sender_response = await run_in_threadpool(
+                lambda: supabase
+                    .table("profiles")
+                    .select("username, email")
+                    .eq("id", user_id)
+                    .execute()
+            )
+            
+            sender_name = "User"
+            if sender_response.data and len(sender_response.data) > 0:
+                sender = sender_response.data[0]
+                sender_name = sender.get("username") or sender.get("email") or "User"
 
             # 🧠 Background AI (only after success)
             import asyncio
@@ -530,12 +560,12 @@ class ChatGroupService:
 
             asyncio.create_task(
                 store_embedding(
-                    text=f"{sender_record.get('full_name', 'User')} said: {message}",
+                    text=f"{sender_name} said: {message}",
                     metadata={
                         "message_id": message_id,
                         "group_id": group_id,
                         "sender_id": user_id,
-                        "sender_name": sender_record.get('full_name', 'User'),
+                        "sender_name": sender_name,
                         "type": "message"
                     }
                 )
@@ -544,11 +574,15 @@ class ChatGroupService:
             return message_record
 
         except Exception as e:
-            print("ERROR:", str(e))
+            print(f"❌ ERROR in send_group_message: {str(e)}")
+            import traceback
+            traceback.print_exc()
             raise HTTPException(status_code=500, detail=str(e))
     @staticmethod
     async def get_group_messages(group_id, user_id, limit=20, offset=0):
         try:
+            print(f"📥 Fetching messages for group: {group_id}, user: {user_id}")
+            
             # Verify user is a member of the group
             member_check = await run_in_threadpool(
                 lambda: supabase
@@ -560,10 +594,13 @@ class ChatGroupService:
             )
             
             if not member_check.data:
+                print(f"❌ User {user_id} is not a member of group {group_id}")
                 raise HTTPException(
                     status_code=403,
                     detail="You are not a member of this group"
                 )
+            
+            print(f"✅ User is a member, fetching messages...")
             
             # Get total count
             count_response = await run_in_threadpool(
@@ -574,79 +611,114 @@ class ChatGroupService:
                     .execute()
             )
             total_count = count_response.count if count_response.count else 0
+            print(f"📊 Total messages in group: {total_count}")
             
-            # Get messages
+            # Get messages - fetch without strict ordering first
             response = await run_in_threadpool(
                 lambda: supabase
                     .table("group_messeges")
                     .select("id, group_id, sender_id, content, created_at, updated_at")
                     .eq("group_id", group_id)
-                    .order("created_at", desc=True)
-                    .limit(limit)
-                    .range(offset, offset + limit - 1)
                     .execute()
             )
 
-            messages = response.data or []
+            all_messages = response.data or []
+            print(f"📨 Fetched {len(all_messages)} total messages from database")
+            
+            # Sort messages in Python, handling NULL timestamps
+            # Messages with NULL created_at will use a very old date for sorting
+            from datetime import datetime
+            def get_sort_key(msg):
+                if msg.get("created_at"):
+                    try:
+                        return datetime.fromisoformat(msg["created_at"].replace('Z', '+00:00'))
+                    except:
+                        return datetime.min
+                return datetime.min  # NULL timestamps go to the beginning
+            
+            all_messages.sort(key=get_sort_key, reverse=True)
+            
+            # Apply pagination manually
+            start_idx = offset
+            end_idx = offset + limit
+            messages = all_messages[start_idx:end_idx]
+            
+            print(f"📨 Returning {len(messages)} messages (offset={offset}, limit={limit})")
             
             # Fetch sender info for each message
             for msg in messages:
-                sender_response = await run_in_threadpool(
-                    lambda m=msg: supabase
-                        .table("profiles")
-                        .select("username, email")
-                        .eq("id", m["sender_id"])
-                        .execute()
-                )
-                
-                if sender_response.data and len(sender_response.data) > 0:
-                    sender = sender_response.data[0]
-                    msg["sender_username"] = sender.get("username") or sender.get("email")
-                else:
-                    msg["sender_username"] = "Unknown"
-            
-            # Fetch attachments for all messages concurrently
-            async def fetch_attachment(msg):
-                attachment_response = await run_in_threadpool(
-                    lambda m=msg: supabase
-                        .table("group_attachments")
-                        .select("id, file_name, file_type, file_size, uploader_id, created_at, file_path")
-                        .eq("message_id", m["id"])
-                        .execute()
-                )
-                
-                if attachment_response.data and len(attachment_response.data) > 0:
-                    attachment = attachment_response.data[0]
-
-                    # Generate file URL
-                    bucket_name = "message"
-                    file_path = attachment.get("file_path")
-
-                    if file_path:
-                        public_url = supabase.storage.from_(bucket_name).get_public_url(file_path)
-                        attachment["file_url"] = public_url
-
-                    # Get uploader username
-                    uploader_response = await run_in_threadpool(
-                        lambda a=attachment: supabase
+                try:
+                    print(f"🔍 Fetching sender info for message {msg['id']}, sender_id: {msg.get('sender_id')}")
+                    
+                    sender_response = await run_in_threadpool(
+                        lambda m=msg: supabase
                             .table("profiles")
-                            .select("username")
-                            .eq("id", a["uploader_id"])
+                            .select("username, email")
+                            .eq("id", m["sender_id"])
                             .execute()
                     )
-
-                    if uploader_response.data and len(uploader_response.data) > 0:
-                        attachment["uploader_username"] = uploader_response.data[0].get("username")
-
-                    msg["attachment"] = attachment
-                
-                return msg
+                    
+                    print(f"   Sender response: {sender_response.data}")
+                    
+                    if sender_response.data and len(sender_response.data) > 0:
+                        sender = sender_response.data[0]
+                        username = sender.get("username") or sender.get("email")
+                        msg["sender_username"] = username
+                        print(f"   ✅ Set sender_username to: {username}")
+                    else:
+                        msg["sender_username"] = "Unknown"
+                        print(f"   ⚠️ No profile found for sender_id: {msg.get('sender_id')}")
+                except Exception as e:
+                    print(f"⚠️ Error fetching sender info for message {msg['id']}: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    msg["sender_username"] = "Unknown"
             
-            # Process all messages concurrently
-            messages = await asyncio.gather(*[fetch_attachment(msg) for msg in messages])
+            print(f"✅ Fetched sender info for all messages")
+            
+            # Fetch attachments for all messages sequentially to avoid socket issues
+            print(f"🔄 Processing attachments...")
+            for msg in messages:
+                try:
+                    attachment_response = await run_in_threadpool(
+                        lambda m=msg: supabase
+                            .table("group_attachments")
+                            .select("id, file_name, file_type, file_size, uploader_id, created_at, file_path")
+                            .eq("message_id", m["id"])
+                            .execute()
+                    )
+                    
+                    if attachment_response.data and len(attachment_response.data) > 0:
+                        attachment = attachment_response.data[0]
+
+                        # Generate file URL
+                        bucket_name = "message"
+                        file_path = attachment.get("file_path")
+
+                        if file_path:
+                            public_url = supabase.storage.from_(bucket_name).get_public_url(file_path)
+                            attachment["file_url"] = public_url
+
+                        # Get uploader username
+                        uploader_response = await run_in_threadpool(
+                            lambda a=attachment: supabase
+                                .table("profiles")
+                                .select("username")
+                                .eq("id", a["uploader_id"])
+                                .execute()
+                        )
+
+                        if uploader_response.data and len(uploader_response.data) > 0:
+                            attachment["uploader_username"] = uploader_response.data[0].get("username")
+
+                        msg["attachment"] = attachment
+                except Exception as e:
+                    print(f"⚠️ Error fetching attachment for message {msg['id']}: {e}")
             
             # Reverse to show oldest first
             messages.reverse()
+            
+            print(f"✅ Successfully fetched {len(messages)} messages with all data")
 
             return {
                 "count": len(messages),
@@ -660,7 +732,7 @@ class ChatGroupService:
         except HTTPException:
             raise
         except Exception as e:
-            print("ERROR in get_group_messages:", str(e))
+            print(f"❌ ERROR in get_group_messages: {str(e)}")
             import traceback
             traceback.print_exc()
             raise HTTPException(status_code=500, detail=str(e))
@@ -865,6 +937,54 @@ class ChatGroupService:
         except Exception as e:
             print(f"Error deleting group message: {str(e)}")
             raise HTTPException(500, f"Failed to delete group message: {str(e)}")
+    
+    @staticmethod
+    async def edit_group_message(message_id: str, user_id: str, group_id: str, new_content: str) -> dict:
+        """Edit a group message (only if user is the sender)"""
+        try:
+            print(f"✏️ Editing message {message_id} in group {group_id}")
+            
+            # Verify user is the sender and message belongs to group
+            message = await run_in_threadpool(
+                lambda: supabase.table("group_messeges")
+                .select("*")
+                .eq("id", message_id)
+                .eq("sender_id", user_id)
+                .eq("group_id", group_id)
+                .execute()
+            )
+            
+            if not message.data:
+                print(f"❌ User {user_id} not authorized to edit message {message_id}")
+                raise HTTPException(403, "Not authorized to edit this message")
+            
+            # Update the message content
+            response = await run_in_threadpool(
+                lambda: supabase.table("group_messeges")
+                .update({"content": new_content})
+                .eq("id", message_id)
+                .execute()
+            )
+            
+            if not response.data:
+                raise HTTPException(500, "Failed to update message")
+            
+            updated_message = response.data[0]
+            print(f"✅ Message {message_id} updated successfully")
+            
+            return {
+                "success": True,
+                "message": "Message updated successfully",
+                "updated_message": updated_message
+            }
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f"❌ Error editing group message: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            raise HTTPException(500, f"Failed to edit group message: {str(e)}")
     
     @staticmethod
     async def update_group_details(group_id: str, user_id: str, updates: dict) -> dict:

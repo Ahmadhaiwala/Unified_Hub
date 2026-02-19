@@ -200,6 +200,23 @@ async def delete_message(
         group_id
     )
 
+@router.put("/chatgroups/{group_id}/messages/{message_id}")
+async def edit_message(
+    group_id: str,
+    message_id: str,
+    message_data: GroupMessegeCreate,
+    current_user=Depends(get_current_user)
+):
+    """
+    Edit a message (sender only)
+    """
+    return await ChatGroupService.edit_group_message(
+        message_id,
+        current_user.id,
+        group_id,
+        message_data.content
+    )
+
 
 
 @router.post("/chatgroups/{group_id}/attachments", response_model=GroupAttachmentOut)

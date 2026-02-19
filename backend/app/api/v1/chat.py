@@ -158,6 +158,16 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
                     # Save message to database
                     message = await ChatGroupService.send_group_message(group_id, user_id, content)
                     
+                    # Fetch sender username for the broadcast
+                    sender_response = supabase.table("profiles").select(
+                        "username, email"
+                    ).eq("id", user_id).execute()
+                    
+                    sender_username = "Unknown"
+                    if sender_response.data and len(sender_response.data) > 0:
+                        sender = sender_response.data[0]
+                        sender_username = sender.get("username") or sender.get("email") or "Unknown"
+                    
                     # If attachment_id is provided, link it to this message
                     if attachment_id:
                         try:
@@ -201,6 +211,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
                             "id": str(message["id"]),
                             "group_id": str(message["group_id"]),
                             "sender_id": str(message["sender_id"]),
+                            "sender_username": sender_username,  # Add sender username
                             "content": message["content"],
                             "created_at": message["created_at"],
                             "attachment": message.get("attachment")  # Include attachment if present
