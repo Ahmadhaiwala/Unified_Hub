@@ -213,11 +213,7 @@ DATABASE_URL=your_database_connection
 
 ---
 
-# 📜 License
 
-This project is licensed under the **MIT License**.
-
----
 
 # ⭐ Support the Project
 
