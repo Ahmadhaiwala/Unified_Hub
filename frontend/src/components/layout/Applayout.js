@@ -13,7 +13,7 @@ export default function AppLayout() {
         <div className={`min-h-screen flex ${themeStyles.bg} ${themeStyles.text}`}>
             <Sidebar />
 
-            <div className="flex-1 flex flex-col lg:ml-0">
+            <div className="flex-1 flex flex-col lg:ml-64">
                 <Navbar />
 
                 {/* Theme buttons - positioned in navbar area */}
