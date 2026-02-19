@@ -235,6 +235,16 @@ export default function GroupChatWindow({ groupId, groupName, onMessageSent, onG
                 console.log("=== RAW API RESPONSE ===")
                 console.log("Full data object:", data)
                 console.log("Messages count:", data.messages?.length)
+                
+                // Log each message's sender info
+                data.messages?.forEach((msg, idx) => {
+                    console.log(`Message ${idx}:`, {
+                        id: msg.id,
+                        content: msg.content?.substring(0, 30),
+                        sender_id: msg.sender_id,
+                        sender_username: msg.sender_username
+                    })
+                })
                 console.log("========================")
 
                 if (loadMore) {

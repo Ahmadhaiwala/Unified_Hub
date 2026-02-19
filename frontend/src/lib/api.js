@@ -2,15 +2,85 @@ import { supabase } from './supabase';
 
 const API_URL = 'http://localhost:8000/api';
 
-// Helper function to get auth headers
+// Helper function to get auth headers with automatic token refresh
 const getAuthHeaders = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error('No active session');
+    let { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+        throw new Error('No active session');
+    }
+
+    // Check if token is expired or about to expire (within 1 minute)
+    const expiresAt = session.expires_at * 1000; // Convert to milliseconds
+    const now = Date.now();
+    const timeUntilExpiry = expiresAt - now;
+    
+    // If token is expired or expires in less than 1 minute, refresh it
+    if (timeUntilExpiry < 60 * 1000) {
+        console.log("Token expired or expiring soon, refreshing...");
+        const { data, error } = await supabase.auth.refreshSession();
+        
+        if (error) {
+            console.error("Token refresh failed:", error);
+            // Sign out user if refresh fails
+            await supabase.auth.signOut();
+            throw new Error('Session expired. Please log in again.');
+        }
+        
+        session = data.session;
+        console.log("Token refreshed successfully");
+    }
 
     return {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${session.access_token}`
     };
+};
+
+// Helper function to make authenticated API calls with automatic retry on 401
+export const authenticatedFetch = async (url, options = {}) => {
+    try {
+        const headers = await getAuthHeaders();
+        const response = await fetch(url, {
+            ...options,
+            headers: {
+                ...headers,
+                ...options.headers
+            }
+        });
+
+        // If we get a 401, try refreshing the token and retry once
+        if (response.status === 401) {
+            console.log("Got 401, attempting token refresh and retry...");
+            
+            const { data, error } = await supabase.auth.refreshSession();
+            
+            if (error) {
+                console.error("Token refresh failed on 401:", error);
+                await supabase.auth.signOut();
+                throw new Error('Session expired. Please log in again.');
+            }
+            
+            // Retry the request with new token
+            const newHeaders = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${data.session.access_token}`,
+                ...options.headers
+            };
+            
+            const retryResponse = await fetch(url, {
+                ...options,
+                headers: newHeaders
+            });
+            
+            return retryResponse;
+        }
+
+        return response;
+    } catch (error) {
+        console.error("API call failed:", error);
+        throw error;
+    }
 };
 
 // ============================================================================

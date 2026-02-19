@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext"
 import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Home, Users, MessageCircle, CheckSquare, Search, LogOut, User } from "lucide-react"
+import SessionRefreshButton from "./SessionRefreshButton"
 
 const menu = [
   {
@@ -82,7 +83,7 @@ export default function Sidebar({ onNavigate }) {
       <aside
         className={`
     w-64 h-screen flex flex-col
-    fixed lg:static top-0 left-0 z-50
+    fixed top-0 left-0 z-50
     transform transition-transform duration-300
     ${open ? "translate-x-0" : "-translate-x-full"}
     lg:translate-x-0
@@ -126,6 +127,11 @@ export default function Sidebar({ onNavigate }) {
 
         {/* FOOTER PROFILE */}
         <div className="p-3 space-y-2">
+          {/* Session Refresh Button */}
+          <div className="px-2 pb-2">
+            <SessionRefreshButton />
+          </div>
+          
           <button
             onClick={() => handleNavigation("/profile")}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg font-medium hover:bg-gray-800 transition-all text-white"
