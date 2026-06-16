@@ -203,7 +203,7 @@ DATABASE_URL=your_database_connection
 * 🔗 Optional Notion API Sync
 
 ---
-
+#Optimizing backend right now its just half optimized will be optimizing more not commited changes
 # 🧑‍💻 Author
 
 ### Ahmad
