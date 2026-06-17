@@ -492,6 +492,7 @@ export default function GroupChatWindow({ groupId, groupName, onMessageSent, onG
 
     function sendMessage(e) {
         e.preventDefault()
+        
 
         // If file is selected, upload it instead
         if (selectedFile) {

@@ -2,37 +2,59 @@
 AI Memory Service using Vector Embeddings with LanceDB
 """
 from typing import Dict, Optional, List
-import lancedb
-from sentence_transformers import SentenceTransformer
 import json
 from datetime import datetime
 import uuid
 
-# Initialize LanceDB connection and model
-try:
-    db = lancedb.connect("./memory_db")
-    model = SentenceTransformer("all-MiniLM-L6-v2")
+# Lazy loading globals
+db = None
+model = None
+memory_table = None
+MEMORY_ENABLED = False
+
+def _initialize_memory_system():
+    """Initialize LanceDB and SentenceTransformer lazily"""
+    global db, model, memory_table, MEMORY_ENABLED
     
-    # Get or create memory table
-    if "memory" not in db.table_names():
-        # Create schema and table if it doesn't exist
-        import pyarrow as pa
-        schema = pa.schema([
-            ("id", pa.string()),
-            ("text", pa.string()),
-            ("vector", pa.list_(pa.float32(), 384)),
-            ("timestamp", pa.string()),
-            ("metadata", pa.string())
-        ])
-        db.create_table("memory", schema=schema)
+    if MEMORY_ENABLED:
+        return True
     
-    memory_table = db.open_table("memory")
-    MEMORY_ENABLED = True
-except Exception as e:
-    print(f"⚠️ Memory DB initialization failed: {str(e)}")
-    print("Memory storage will be disabled")
-    MEMORY_ENABLED = False
-    memory_table = None
+    try:
+        print("🔄 Initializing AI memory system...")
+        
+        # Import heavy dependencies only when needed
+        import lancedb
+        from sentence_transformers import SentenceTransformer
+        
+        # Initialize database
+        db = lancedb.connect("./memory_db")
+        
+        # Initialize model
+        print("📥 Loading SentenceTransformer model...")
+        model = SentenceTransformer("all-MiniLM-L6-v2")
+        
+        # Get or create memory table
+        if "memory" not in db.table_names():
+            import pyarrow as pa
+            schema = pa.schema([
+                ("id", pa.string()),
+                ("text", pa.string()),
+                ("vector", pa.list_(pa.float32(), 384)),
+                ("timestamp", pa.string()),
+                ("metadata", pa.string())
+            ])
+            db.create_table("memory", schema=schema)
+        
+        memory_table = db.open_table("memory")
+        MEMORY_ENABLED = True
+        print("✅ AI memory system initialized successfully")
+        return True
+        
+    except Exception as e:
+        print(f"⚠️ Memory DB initialization failed: {str(e)}")
+        print("Memory storage will be disabled")
+        MEMORY_ENABLED = False
+        return False
 
 async def store_embedding(text: str, metadata: Optional[Dict] = None):
     """
@@ -42,7 +64,8 @@ async def store_embedding(text: str, metadata: Optional[Dict] = None):
         text: Text to create embedding from
         metadata: Additional metadata to store with the embedding
     """
-    if not MEMORY_ENABLED:
+    # Initialize memory system on first use
+    if not _initialize_memory_system():
         return
         
     try:
@@ -92,7 +115,8 @@ async def search_similar(query: str, limit: int = 5, filter_metadata: Optional[D
     Returns:
         List of similar items with text and metadata
     """
-    if not MEMORY_ENABLED:
+    # Initialize memory system on first use
+    if not _initialize_memory_system():
         print(f"🔍 Memory disabled - would search: {query}")
         return []
         

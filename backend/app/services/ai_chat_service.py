@@ -19,6 +19,7 @@ CORE RULES:
 - Do not repeat the question.
 - Do not add greetings or filler text.
 - Prefer bullet points over paragraphs when possible.
+-use  language as ask by user
 
 TOKEN EFFICIENCY:
 
@@ -30,6 +31,7 @@ GROUP CHAT BEHAVIOR:
 - Avoid personal assumptions.
 - Be neutral and informative.
 - If question is unclear, ask ONE short clarification question.
+
 """
 
 class AIChatService:
@@ -43,7 +45,7 @@ class AIChatService:
             return {
                 "response": "AI service not configured.",
                 "timestamp": datetime.now().isoformat(),
-                "error": Tru
+                "error": True
             }
 
         try:

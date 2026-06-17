@@ -119,7 +119,7 @@ const AssignmentList = ({ groupId }) => {
                     <select
                         value={filterSubject}
                         onChange={(e) => setFilterSubject(e.target.value)}
-                        className="filter-select"
+                        className="filter-select text-gray-900"
                     >
                         {subjects.map(subject => (
                             <option key={subject} value={subject}>
@@ -131,7 +131,7 @@ const AssignmentList = ({ groupId }) => {
                     <select
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value)}
-                        className="sort-select"
+                        className="sort-select text-gray-900"
                     >
                         <option value="created_at">Latest First</option>
                         <option value="due_date">By Deadline</option>

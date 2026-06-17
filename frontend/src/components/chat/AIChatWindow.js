@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import { useTheme } from "../../context/ThemeContext"
 import { useAuth } from "../../context/AuthContext"
 import axios from "axios"
-import CodeExecutionPanel from "./CodeExecutionPanel"
+
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000"
 
@@ -371,13 +371,7 @@ export default function AIChatWindow({ groupId = null, groupName = null }) {
             </div>
 
             {/* Code Execution Panel */}
-            {codeToExecute && (
-                <CodeExecutionPanel
-                    code={codeToExecute.code}
-                    language={codeToExecute.language}
-                    onClose={() => setCodeToExecute(null)}
-                />
-            )}
+           
         </div>
     )
 }

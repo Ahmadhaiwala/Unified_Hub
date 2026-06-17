@@ -127,10 +127,7 @@ export default function Sidebar({ onNavigate }) {
 
         {/* FOOTER PROFILE */}
         <div className="p-3 space-y-2">
-          {/* Session Refresh Button */}
-          <div className="px-2 pb-2">
-            <SessionRefreshButton />
-          </div>
+          
           
           <button
             onClick={() => handleNavigation("/profile")}

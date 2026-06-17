@@ -222,7 +222,7 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className={`flex items-center justify-center min-h-screen ${themeStyles.bg}`}>
+      <div className={` flex items-center justify-center min-h-screen ${themeStyles.bg}`}>
         <div className="text-center">
           <div className="relative w-24 h-24 mx-auto mb-4">
             <div className="absolute inset-0 border-4 border-blue-200 dark:border-blue-900 rounded-full"></div>
@@ -250,8 +250,8 @@ export default function Profile() {
     : 0
 
   return (
-    <div className={`min-h-screen ${themeStyles.bg} ${themeStyles.text} p-6`}>
-      <div className="max-w-7xl mx-auto">
+    <div className={`min-h-screen ${themeStyles.bg} ${themeStyles.text} p-2`}>
+      <div className="max-w-5xl mx-auto">
 
         {/* Success Message with Animation */}
         {updateSuccess && (
@@ -270,8 +270,8 @@ export default function Profile() {
         )}
 
         {/* Profile Header Card with Animation */}
-        <div className={`${themeStyles.cardBg} border-4 ${themeStyles.border} rounded-2xl p-8 mb-8 shadow-2xl animate-slide-up transition-all duration-300`}>
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
+        <div className={`${themeStyles.cardBg} border-2 ${themeStyles.border} rounded-xl p-5 mb-5 shadow-xl animate-slide-up transition-all duration-300`}>
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-5">
 
             {/* Avatar Section with Cool Hover Effect */}
             <div className="relative group">
@@ -279,18 +279,18 @@ export default function Profile() {
                 <img
                   src={photoPreview || profile?.avatar_url || `https://ui-avatars.com/api/?name=${profile?.username || 'User'}&size=200&background=random`}
                   alt="avatar"
-                  className="w-40 h-40 rounded-full border-4 border-gray-300 dark:border-gray-700 object-cover shadow-2xl transform group-hover:scale-105 transition-transform duration-300"
+                  className="w-28 h-28 rounded-full border-3 border-gray-300 dark:border-gray-700 object-cover shadow-xl transform group-hover:scale-105 transition-transform duration-300"
                 />
                 <button
                   onClick={handlePhotoClick}
                   disabled={uploadingPhoto}
-                  className="absolute inset-0 w-40 h-40 rounded-full bg-black bg-opacity-0 hover:bg-opacity-60 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer"
+                  className="absolute inset-0 w-28 h-28 rounded-full bg-black bg-opacity-0 hover:bg-opacity-60 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer"
                 >
                   {uploadingPhoto ? (
-                    <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-white"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-3 border-white"></div>
                   ) : (
                     <div className="text-center">
-                      <span className="text-white text-4xl block mb-1">📷</span>
+                      <span className="text-white text-2xl block mb-1">📷</span>
                       <span className="text-white text-xs font-bold">Change Photo</span>
                     </div>
                   )}
@@ -307,12 +307,12 @@ export default function Profile() {
 
             {/* Profile Info */}
             <div className="flex-1 text-center md:text-left">
-              <h1 className={`text-5xl font-black mb-2 ${themeStyles.text} animate-fade-in`}>
+              <h1 className={`text-3xl font-black mb-1 ${themeStyles.text} animate-fade-in`}>
                 {profile?.username || "User"}
               </h1>
-              <p className="text-xl opacity-70 mb-1">{user?.email}</p>
+              <p className="text-base opacity-70 mb-1">{user?.email}</p>
               {!isEditing ? (
-                <p className="text-lg opacity-80 mt-4 italic">
+                <p className="text-sm opacity-80 mt-2 italic">
                   "{profile?.bio || "No bio added yet. Add one to tell others about yourself!"}"
                 </p>
               ) : (
@@ -334,7 +334,7 @@ export default function Profile() {
               {!isEditing ? (
                 <button
                   onClick={handleEditClick}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl hover:scale-105 hover:shadow-lg transition-all duration-300 flex items-center gap-2"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-lg hover:scale-105 hover:shadow-lg transition-all duration-300 flex items-center gap-2"
                 >
                   <span>✏️</span>
                   <span>Edit Profile</span>
@@ -344,7 +344,7 @@ export default function Profile() {
                   <button
                     onClick={handleUpdateProfile}
                     disabled={updating}
-                    className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl hover:scale-105 hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold text-sm rounded-lg hover:scale-105 hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   >
                     <span>{updating ? "⏳" : "💾"}</span>
                     <span>{updating ? "Saving..." : "Save Changes"}</span>
@@ -352,7 +352,7 @@ export default function Profile() {
                   <button
                     onClick={handleCancel}
                     disabled={updating}
-                    className="px-6 py-3 bg-gray-500 text-white font-bold rounded-xl hover:scale-105 hover:shadow-lg transition-all duration-300 disabled:opacity-50"
+                    className="px-4 py-2 bg-gray-500 text-white font-bold text-sm rounded-lg hover:scale-105 hover:shadow-lg transition-all duration-300 disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -363,13 +363,13 @@ export default function Profile() {
         </div>
 
         {/* Stats Cards with Animations */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
           {/* Friends Count */}
-          <div className={`${themeStyles.cardBg} border-4 ${themeStyles.border} rounded-2xl p-6 hover:scale-105 hover:shadow-xl transition-all duration-300 animate-slide-up cursor-pointer group`}>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-4xl group-hover:scale-125 transition-transform duration-300">👥</span>
+          <div className={`${themeStyles.cardBg} border-2 ${themeStyles.border} rounded-xl p-4 hover:scale-105 hover:shadow-xl transition-all duration-300 animate-slide-up cursor-pointer group`}>
+            <div className="flex items-center justify-between">
+              <span className="text-2xl group-hover:scale-125 transition-transform duration-300">👥</span>
               <div className="text-right">
-                <p className="text-3xl font-black text-blue-600 dark:text-blue-400">
+                <p className="text-2xl font-black text-blue-600 dark:text-blue-400">
                   {friendCount}
                 </p>
                 <p className="text-xs font-bold uppercase opacity-70">Friends</p>
@@ -378,11 +378,11 @@ export default function Profile() {
           </div>
 
           {/* Groups Count */}
-          <div className={`${themeStyles.cardBg} border-4 ${themeStyles.border} rounded-2xl p-6 hover:scale-105 hover:shadow-xl transition-all duration-300 animate-slide-up cursor-pointer group`} style={{ animationDelay: '0.1s' }}>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-4xl group-hover:scale-125 transition-transform duration-300">💬</span>
+          <div className={`${themeStyles.cardBg} border-2 ${themeStyles.border} rounded-xl p-4 hover:scale-105 hover:shadow-xl transition-all duration-300 animate-slide-up cursor-pointer group`} style={{ animationDelay: '0.1s' }}>
+            <div className="flex items-center justify-between">
+              <span className="text-2xl group-hover:scale-125 transition-transform duration-300">💬</span>
               <div className="text-right">
-                <p className="text-3xl font-black text-green-600 dark:text-green-400">
+                <p className="text-2xl font-black text-green-600 dark:text-green-400">
                   {groupCount}
                 </p>
                 <p className="text-xs font-bold uppercase opacity-70">Groups</p>
@@ -391,11 +391,11 @@ export default function Profile() {
           </div>
 
           {/* Account Age */}
-          <div className={`${themeStyles.cardBg} border-4 ${themeStyles.border} rounded-2xl p-6 hover:scale-105 hover:shadow-xl transition-all duration-300 animate-slide-up cursor-pointer group`} style={{ animationDelay: '0.2s' }}>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-4xl group-hover:scale-125 transition-transform duration-300">📅</span>
+          <div className={`${themeStyles.cardBg} border-2 ${themeStyles.border} rounded-xl p-4 hover:scale-105 hover:shadow-xl transition-all duration-300 animate-slide-up cursor-pointer group`} style={{ animationDelay: '0.2s' }}>
+            <div className="flex items-center justify-between">
+              <span className="text-2xl group-hover:scale-125 transition-transform duration-300">📅</span>
               <div className="text-right">
-                <p className="text-3xl font-black text-blue-600 dark:text-blue-400">
+                <p className="text-2xl font-black text-blue-600 dark:text-blue-400">
                   {accountAge}
                 </p>
                 <p className="text-xs font-bold uppercase opacity-70">Days</p>
@@ -404,11 +404,11 @@ export default function Profile() {
           </div>
 
           {/* Status Badge */}
-          <div className={`${themeStyles.cardBg} border-4 ${themeStyles.border} rounded-2xl p-6 hover:scale-105 hover:shadow-xl transition-all duration-300 animate-slide-up cursor-pointer group`} style={{ animationDelay: '0.3s' }}>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-4xl group-hover:scale-125 transition-transform duration-300">✨</span>
+          <div className={`${themeStyles.cardBg} border-2 ${themeStyles.border} rounded-xl p-4 hover:scale-105 hover:shadow-xl transition-all duration-300 animate-slide-up cursor-pointer group`} style={{ animationDelay: '0.3s' }}>
+            <div className="flex items-center justify-between">
+              <span className="text-2xl group-hover:scale-125 transition-transform duration-300">✨</span>
               <div className="text-right">
-                <p className="text-2xl font-black text-green-600 dark:text-green-400">
+                <p className="text-xl font-black text-green-600 dark:text-green-400">
                   Active
                 </p>
                 <p className="text-xs font-bold uppercase opacity-70">Status</p>
@@ -418,7 +418,7 @@ export default function Profile() {
         </div>
 
         {/* Productivity Heatmap */}
-        <div className="mb-8">
+        <div className="mb-5">
           <CompactHeatmap />
         </div>
 
@@ -427,8 +427,8 @@ export default function Profile() {
           <div className="mb-8">
 
             {/* Personal Information Card */}
-            <div className={`${themeStyles.cardBg} border-4 ${themeStyles.border} rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 animate-fade-in`}>
-              <h2 className="text-2xl font-black uppercase mb-6 flex items-center gap-2 border-b-4 border-current pb-3">
+            <div className={`${themeStyles.cardBg} border-2 ${themeStyles.border} rounded-xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 animate-fade-in`}>
+              <h2 className="text-xl font-black uppercase mb-4 flex items-center gap-2 border-b-2 border-current pb-2">
                 <span>👤</span>
                 <span>Personal Info</span>
               </h2>

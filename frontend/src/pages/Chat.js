@@ -127,13 +127,8 @@ export default function Chat() {
                                 💡 Chat with AI Assistant
                             </p>
                         </div>
-                    ) : activeTab === "ai" ? (
-                        <div className="p-4 text-center">
-                            <p className={`${themeStyles.accent} text-sm`}>
-                                💡 Chat with AI Assistant
-                            </p>
-                        </div>
-                    ) : (
+                    ): (
+
                         <>
                             <GroupChatList
                                 onSelectGroup={handleSelectGroup}
