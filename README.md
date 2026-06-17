@@ -10,6 +10,8 @@ A modern chat application with AI integration, document processing, and real-tim
 - **Group Chat**: Multi-user chat rooms with file sharing
 - **Vector Embeddings**: Semantic search and memory system
 - **User Management**: Authentication and profile system
+- **Task Management**: Workspace-based task organization
+- **Calendar Module**: Event scheduling and tracking
 
 ## 🏗️ Architecture
 
@@ -142,6 +144,11 @@ gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker
 - `GET /api/chat/conversations` - User conversations
 - `POST /api/chat/conversations/{friend_id}` - Start conversation
 
+### Productivity Features
+- `/api/tasks` - Task management system
+- `/api/calendar` - Calendar events
+- `/api/assignments` - Assignment management
+
 ## 🔧 Configuration
 
 ### Environment Variables
@@ -166,6 +173,8 @@ OMP_NUM_THREADS=1
 - `group_messeges` - Group chat messages
 - `group_attachments` - File attachments
 - `ai_chat_history` - AI conversation history
+- `assignments` - Task assignments
+- `question_sheets` - Document questions
 
 ### Vector Storage
 - `memory` - LanceDB table for embeddings
